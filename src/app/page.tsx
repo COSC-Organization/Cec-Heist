@@ -3,6 +3,40 @@
 import React, { useState } from "react";
 import Image from "next/image";
 
+const ScrambleText = ({ text }: { text: string }) => {
+  const [displayText, setDisplayText] = useState(text);
+  const chars = "!<>-_\\\\/[]{}—=+*^?#_";
+
+  const scramble = () => {
+    let iteration = 0;
+    const interval = setInterval(() => {
+      setDisplayText(
+        text
+          .split("")
+          .map((letter, index) => {
+            if (index < iteration) {
+              return text[index];
+            }
+            return chars[Math.floor(Math.random() * chars.length)];
+          })
+          .join("")
+      );
+      
+      if (iteration >= text.length) {
+        clearInterval(interval);
+      }
+      
+      iteration += 1 / 2;
+    }, 30);
+  };
+
+  return (
+    <span onMouseEnter={scramble} style={{ display: 'inline-block' }}>
+      {displayText}
+    </span>
+  );
+};
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -47,10 +81,10 @@ export default function Home() {
           <div className="header-menu-content">
             <div className="menu-modal-header">// CEC HEIST 2K26 INDEX</div>
             <nav className="menu-nav-list">
-              <a href="#about" className="menu-nav-item" onClick={() => setMenuOpen(false)}>01. ABOUT HEIST</a>
-              <a href="#schedule" className="menu-nav-item" onClick={() => setMenuOpen(false)}>02. SCHEDULE</a>
-              <a href="#rules" className="menu-nav-item" onClick={() => setMenuOpen(false)}>03. RULES & ACCESS</a>
-              <a href="#contact" className="menu-nav-item" onClick={() => setMenuOpen(false)}>04. CONTACT COSC</a>
+              <a href="#about" className="menu-nav-item" onClick={() => setMenuOpen(false)}><ScrambleText text="01. ABOUT HEIST" /></a>
+              <a href="#schedule" className="menu-nav-item" onClick={() => setMenuOpen(false)}><ScrambleText text="02. SCHEDULE" /></a>
+              <a href="#rules" className="menu-nav-item" onClick={() => setMenuOpen(false)}><ScrambleText text="03. RULES & ACCESS" /></a>
+              <a href="#contact" className="menu-nav-item" onClick={() => setMenuOpen(false)}><ScrambleText text="04. CONTACT COSC" /></a>
             </nav>
             
             <img 

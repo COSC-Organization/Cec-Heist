@@ -237,7 +237,6 @@ html, body {
 .menu-nav-item:hover {
   background: transparent;
   opacity: 1;
-  padding-left: 0.8rem;
 }
 
 /* Cyber Marquee Banner */
@@ -246,7 +245,7 @@ html, body {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(255, 0, 60, 0.4);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
@@ -254,7 +253,7 @@ html, body {
   padding: 8px 0;
   z-index: 20;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 -4px 30px rgba(255, 0, 60, 0.3);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
 }
 
 .cyber-marquee-content {
@@ -292,3 +291,7 @@ html, body {
   z-index: -1; /* keep it behind the text */
   border-bottom-right-radius: 8px; /* match the pill border radius */
 }
+
+
+
+
