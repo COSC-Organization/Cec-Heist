@@ -13,7 +13,7 @@ export default function Home() {
       {/* Header Pill */}
       <header className="header-wrapper">
         <div className={`header-pill ${menuOpen ? "expanded" : ""}`}>
-          <div className="header-content-top">
+          <div className="header-content-top" style={{ position: 'relative' }}>
             <div className="header-brand">
               <Image
                 src="/cosc%20logo.png"
@@ -22,14 +22,15 @@ export default function Home() {
                 height={56}
                 className="header-logo"
               />
-              <img
-                src="/homepage/menu.png?v=2"
-                alt="Menu"
-                width={100}
-                height={24}
-                style={{ objectFit: 'contain' }}
-              />
             </div>
+
+            <img
+              src="/homepage/menu.png?v=2"
+              alt="Menu"
+              width={100}
+              height={24}
+              style={{ objectFit: 'contain', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}
+            />
 
             <button
               className={`menu-toggle-btn ${menuOpen ? "open" : ""}`}
