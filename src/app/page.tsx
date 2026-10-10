@@ -12,41 +12,38 @@ export default function Home() {
 
       {/* Header Pill */}
       <header className="header-wrapper">
-        <div className="header-pill">
-          <div className="header-brand">
-            <Image
-              src="/cosc%20logo.png"
-              alt="COSC Logo"
-              width={26}
-              height={26}
-              className="header-logo"
-            />
-            <span className="header-title">CEC HEIST</span>
+        <div className={`header-pill ${menuOpen ? "expanded" : ""}`}>
+          <div className="header-content-top">
+            <div className="header-brand">
+              <Image
+                src="/cosc%20logo.png"
+                alt="COSC Logo"
+                width={56}
+                height={56}
+                className="header-logo"
+              />
+              <img
+                src="/homepage/menu.png?v=2"
+                alt="Menu"
+                width={100}
+                height={24}
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+
+            <button
+              className={`menu-toggle-btn ${menuOpen ? "open" : ""}`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+            >
+              <div className="hamburger-icon">
+                <span className="line top"></span>
+                <span className="line bottom"></span>
+              </div>
+            </button>
           </div>
-
-          <button
-            className="menu-toggle-btn"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect y="1" width="22" height="2.5" fill="currentColor" rx="1" />
-              <rect y="10.5" width="22" height="2.5" fill="currentColor" rx="1" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="content-wrapper">
-        <h1 className="heist-text">CEC HEIST 2026</h1>
-      </div>
-
-      {/* Menu Modal */}
-      {menuOpen && (
-        <div className="menu-modal-backdrop" onClick={() => setMenuOpen(false)}>
-          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="menu-close-btn" onClick={() => setMenuOpen(false)}>✕</button>
+          
+          <div className="header-menu-content">
             <div className="menu-modal-header">// CEC HEIST 2026 INDEX</div>
             <nav className="menu-nav-list">
               <a href="#about" className="menu-nav-item" onClick={() => setMenuOpen(false)}>01. ABOUT HEIST</a>
@@ -56,7 +53,23 @@ export default function Home() {
             </nav>
           </div>
         </div>
-      )}
+      </header>
+
+      {/* Main Content */}
+      <div className="content-wrapper">
+      </div>
+
+
+
+      {/* Cyber Crime Banner */}
+      <div className="cyber-marquee-container">
+        <div className="cyber-marquee-content">
+          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
+          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
+          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
+          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
+        </div>
+      </div>
     </main>
   );
 }
