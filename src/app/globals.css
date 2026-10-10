@@ -73,11 +73,11 @@ html, body {
 .header-pill {
   display: flex;
   flex-direction: column;
-  background: rgba(20, 20, 26, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(20, 20, 26, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 8px;
   width: 320px;
   height: 52px;
   overflow: hidden;
@@ -87,8 +87,8 @@ html, body {
 
 .header-pill.expanded {
   width: 440px;
-  height: 380px;
-  background: rgba(20, 20, 26, 0.95);
+  height: 310px;
+  background: rgba(20, 20, 26, 0.65);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0s, height 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s, background 0.4s ease;
 }
 
@@ -223,21 +223,21 @@ html, body {
 }
 
 .menu-nav-item {
-  padding: 0.85rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  padding: 0.5rem 0;
+  background: transparent;
+  border: none;
   color: #ffffff;
   font-family: 'FK Raster Roman', 'DotGothic16', 'Pixelify Sans', monospace;
-  font-size: 1.15rem;
+  font-size: 1.4rem;
   text-decoration: none;
+  opacity: 0.7;
   transition: all 0.2s ease;
 }
 
 .menu-nav-item:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  padding-left: 1.3rem;
+  background: transparent;
+  opacity: 1;
+  padding-left: 0.8rem;
 }
 
 /* Cyber Marquee Banner */
@@ -275,4 +275,20 @@ html, body {
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+.header-pill {
+  position: relative; /* Ensure the absolutely positioned image stays inside */
+}
+
+.menu-decor-image {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 180px;
+  height: auto;
+  pointer-events: none; /* So you can still click things underneath */
+  opacity: 0.8; 
+  z-index: -1; /* keep it behind the text */
+  border-bottom-right-radius: 8px; /* match the pill border radius */
 }

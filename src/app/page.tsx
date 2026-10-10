@@ -52,16 +52,19 @@ export default function Home() {
               <a href="#rules" className="menu-nav-item" onClick={() => setMenuOpen(false)}>03. RULES & ACCESS</a>
               <a href="#contact" className="menu-nav-item" onClick={() => setMenuOpen(false)}>04. CONTACT COSC</a>
             </nav>
+            
+            <img 
+              src="/homepage/menu-image.png" 
+              alt="Menu Decor" 
+              className="menu-decor-image" 
+            />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="content-wrapper">
-        <h1 className="heist-text">
-          <div>CEC HEIST</div>
-          <div>2K26</div>
-        </h1>
+
       </div>
 
       {/* Cyber Crime Banner */}
