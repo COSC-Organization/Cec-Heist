@@ -1,0 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Jacquard+12&family=Pixelify+Sans:wght@400;700&family=VT323&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: #040406;
+  color: #ffffff;
+  font-family: 'Pixelify Sans', 'Jacquard 12', 'VT323', monospace;
+  overflow: hidden;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* CRT Screen Container */
+.crt-screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #060608;
+  background: radial-gradient(circle at 50% 50%, #101017 0%, #030305 85%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.95);
+}
+
+/* Horizontal Scanlines Overlay */
+.scanlines-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.08) 0px,
+    rgba(255, 255, 255, 0.08) 1px,
+    rgba(0, 0, 0, 0.75) 1px,
+    rgba(0, 0, 0, 0.75) 3px
+  );
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
+}
+
+.header-wrapper {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+.header-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  background: #e2e2e8;
+  border: 1px solid #b5b5be;
+  border-radius: 10px;
+  padding: 0.45rem 1.1rem;
+  min-width: 320px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.header-logo {
+  object-fit: contain;
+  width: 24px;
+  height: 24px;
+}
+
+.header-title {
+  font-family: 'Pixelify Sans', 'VT323', monospace;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #000000;
+  letter-spacing: 0.3px;
+}
+
+.menu-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #000000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.menu-toggle-btn:hover {
+  opacity: 0.7;
+}
+
+/* Main Text Container */
+.content-wrapper {
+  z-index: 5;
+  text-align: center;
+}
+
+/* CEC HEIST 2026 Typography */
+.heist-text {
+  font-family: 'Pixelify Sans', 'Jacquard 12', 'VT323', monospace;
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  user-select: none;
+  text-shadow: none;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* Menu Modal */
+.menu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(4, 4, 6, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.menu-modal-card {
+  background: #14141a;
+  border: 1px solid #333340;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+}
+
+.menu-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: transparent;
+  border: 1px solid #444455;
+  color: #ffffff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+}
+
+.menu-modal-header {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  color: #a1a1aa;
+  margin-bottom: 1.25rem;
+}
+
+.menu-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.menu-nav-item {
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 1.15rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.menu-nav-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  padding-left: 1.3rem;
+}
