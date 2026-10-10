@@ -1,4 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Jacquard+12&family=Pixelify+Sans:wght@400;700&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cutive+Mono&family=DotGothic16&family=EB+Garamond:ital,wght@0,300..800;1,300..800&family=Jacquard+12&family=Pixelify+Sans:wght@300;400;700&family=Silkscreen&family=VT323&display=swap');
+
+/* Official FK Raster Roman Font Definition */
+@font-face {
+  font-family: 'FK Raster Roman';
+  src: local('FK Raster Roman'),
+       local('FKRasterRoman'),
+       local('FK Raster Roman Compact'),
+       local('FK Raster Roman Compact Smooth'),
+       url('/fonts/FKRasterRoman.woff2') format('woff2'),
+       url('/fonts/FKRasterRoman.woff') format('woff'),
+       url('/fonts/FKRasterRoman.ttf') format('truetype'),
+       url('/fonts/FKRasterRoman.otf') format('opentype'),
+       url('/fonts/Fkrasterromancompact-Smooth.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 * {
   box-sizing: border-box;
@@ -11,11 +28,8 @@ html, body {
   height: 100%;
   background-color: #040406;
   color: #ffffff;
-  font-family: 'Pixelify Sans', 'Jacquard 12', 'VT323', monospace;
+  font-family: 'FK Raster Roman', 'DotGothic16', 'Cutive Mono', 'Jacquard 12', 'Pixelify Sans', serif;
   overflow: hidden;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-  font-smooth: never;
 }
 
 /* CRT Screen Container */
@@ -32,7 +46,7 @@ html, body {
   box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.95);
 }
 
-/* Horizontal Scanlines Overlay */
+/* Horizontal Scanlines Overlay (Positioned in background behind text) */
 .scanlines-overlay {
   position: absolute;
   inset: 0;
@@ -79,16 +93,6 @@ html, body {
 }
 
 .header-content-top {
-
-
-
-
-
-
-
-
-
-
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -105,14 +109,14 @@ html, body {
 
 .header-logo {
   object-fit: contain;
-  width: 56px;
-  height: 56px;
+  width: 32px;
+  height: 32px;
 }
 
 .header-title {
-  font-family: 'Pixelify Sans', 'VT323', monospace;
+  font-family: 'FK Raster Roman', 'DotGothic16', 'Pixelify Sans', monospace;
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #ffffff;
   letter-spacing: 0.3px;
 }
@@ -162,25 +166,32 @@ html, body {
   transform: translateY(-50%) rotate(-45deg);
 }
 
-/* Main Text Container */
+/* Main Text Container (Positioned ABOVE scanlines so no lines cut across font) */
 .content-wrapper {
-  z-index: 5;
+  position: relative;
+  z-index: 30;
   text-align: center;
 }
 
-/* CEC HEIST 2026 Typography */
+/* FK Raster Roman Typography - Tall, Thin & Multiline */
 .heist-text {
-  font-family: 'Pixelify Sans', 'Jacquard 12', 'VT323', monospace;
-  font-size: clamp(2.5rem, 7vw, 6rem);
-  font-weight: 700;
+  font-family: 'FK Raster Roman', 'DotGothic16', 'Cutive Mono', 'Jacquard 12', 'Pixelify Sans', serif;
+  font-size: clamp(3.2rem, 9.5vw, 8.5rem);
+  font-weight: 300;
+  line-height: 1.15;
   color: #ffffff;
-  letter-spacing: 3px;
-  text-transform: uppercase;
+  letter-spacing: 6px;
   user-select: none;
   text-shadow: none;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-  font-smooth: never;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  transform: scaleY(1.3);
+  transform-origin: center;
+  opacity: 1;
+  text-transform: uppercase;
 }
 
 .header-menu-content {
@@ -199,7 +210,7 @@ html, body {
 }
 
 .menu-modal-header {
-  font-family: 'VT323', monospace;
+  font-family: 'FK Raster Roman', 'VT323', monospace;
   font-size: 1.2rem;
   color: #a1a1aa;
   margin-bottom: 1.25rem;
@@ -217,7 +228,7 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #ffffff;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: 'FK Raster Roman', 'DotGothic16', 'Pixelify Sans', monospace;
   font-size: 1.15rem;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -250,7 +261,7 @@ html, body {
   display: flex;
   width: max-content;
   animation: marquee 15s linear infinite;
-  font-family: 'VT323', monospace;
+  font-family: 'FK Raster Roman', 'VT323', monospace;
   font-size: 1.3rem;
   font-weight: 700;
   letter-spacing: 2px;
@@ -265,6 +276,3 @@ html, body {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-
-
-

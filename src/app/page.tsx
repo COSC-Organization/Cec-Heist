@@ -45,7 +45,7 @@ export default function Home() {
           </div>
           
           <div className="header-menu-content">
-            <div className="menu-modal-header">// CEC HEIST 2026 INDEX</div>
+            <div className="menu-modal-header">// CEC HEIST 2K26 INDEX</div>
             <nav className="menu-nav-list">
               <a href="#about" className="menu-nav-item" onClick={() => setMenuOpen(false)}>01. ABOUT HEIST</a>
               <a href="#schedule" className="menu-nav-item" onClick={() => setMenuOpen(false)}>02. SCHEDULE</a>
@@ -58,9 +58,11 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="content-wrapper">
+        <h1 className="heist-text">
+          <div>CEC HEIST</div>
+          <div>2K26</div>
+        </h1>
       </div>
-
-
 
       {/* Cyber Crime Banner */}
       <div className="cyber-marquee-container">
