@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { usePixelTransition } from "../../components/PixelTransition";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -112,6 +113,7 @@ const ScrambleText = ({ text }: { text: string }) => {
 export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { triggerTransition } = usePixelTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -135,6 +137,12 @@ export default function ArenaPage() {
 
     if (pathname === href) {
       setMenuOpen(false);
+      return;
+    }
+
+    if (href === "/" || href === "/#") {
+      setMenuOpen(false);
+      triggerTransition("/", "right-to-left");
       return;
     }
 
@@ -171,11 +179,7 @@ export default function ArenaPage() {
               href="/"
               className="header-brand"
               onClick={(e) => {
-                if (menuOpen) {
-                  handleNavClick(e, "/");
-                } else {
-                  playCyberClick();
-                }
+                handleNavClick(e, "/");
               }}
             >
               <Image

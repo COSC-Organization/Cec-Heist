@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Pixelify_Sans, Space_Mono, VT323 } from "next/font/google";
 import "./globals.css";
 import ZoomLock from "../components/ZoomLock";
+import { PixelTransitionProvider } from "../components/PixelTransition";
 
 const pixelify = Pixelify_Sans({
   variable: "--font-pixelify",
@@ -42,7 +43,9 @@ export default function RootLayout({
     <html lang="en" className={`${pixelify.variable} ${spaceMono.variable} ${vt323.variable}`}>
       <body className="antialiased">
         <ZoomLock />
-        {children}
+        <PixelTransitionProvider>
+          {children}
+        </PixelTransitionProvider>
       </body>
     </html>
   );

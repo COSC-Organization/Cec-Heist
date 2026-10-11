@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { usePixelTransition } from "../components/PixelTransition";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -109,6 +110,7 @@ const ScrambleText = ({ text }: { text: string }) => {
 export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
+  const { triggerTransition } = usePixelTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -132,6 +134,12 @@ export default function Home() {
 
     if (pathname === href) {
       setMenuOpen(false);
+      return;
+    }
+
+    if (href === "/arena") {
+      setMenuOpen(false);
+      triggerTransition("/arena", "left-to-right");
       return;
     }
 
@@ -264,7 +272,11 @@ export default function Home() {
           <Link 
             href="/arena"
             className="arena-enter-btn gooey-button"
-            onClick={() => playCyberClick()}
+            onClick={(e) => {
+              e.preventDefault();
+              playCyberClick();
+              triggerTransition("/arena", "left-to-right");
+            }}
             onPointerMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left + 12}px`);
