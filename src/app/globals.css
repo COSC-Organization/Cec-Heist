@@ -1187,7 +1187,7 @@ button img,
 }
 
 /* =========================================
-   ARENA MAP PAGE
+   ARENA MAP PAGE & INTERACTIVE FACILITIES
    ========================================= */
 
 .arena-screen {
@@ -1195,7 +1195,7 @@ button img,
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: transparent;
+  background: #020305;
   box-shadow: none;
 }
 
@@ -1211,74 +1211,314 @@ button img,
   z-index: 1;
 }
 
-.arena-map-bg-img {
+/* Responsive aspect-ratio stage matching 1672x941 arena-map.jpg */
+.arena-map-stage {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: none;
+  width: 100vw;
+  height: calc(100vw * 941 / 1672);
+  min-height: 100vh;
+  min-width: calc(100vh * 1672 / 941);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   user-select: none;
 }
 
-/* 4 Question Rooms Layer (Positions for 4 room.png) */
-.arena-rooms-layer {
+.arena-map-stage-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* =========================================
+   ANIMATED WHITE ROAD LINES (NO GLOW)
+   ========================================= */
+
+.arena-road-svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 20;
-  pointer-events: auto;
+  pointer-events: none;
+  z-index: 5;
 }
 
-.arena-room-slot {
+.road-white-line {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 22 44;
+  opacity: 0.95;
+}
+
+.road-speed-1 {
+  animation: roadDashesMove 2.6s linear infinite;
+}
+
+.road-speed-2 {
+  animation: roadDashesMove 3.0s linear infinite;
+}
+
+.road-speed-3 {
+  animation: roadDashesMove 2.5s linear infinite;
+}
+
+@keyframes roadDashesMove {
+  from {
+    stroke-dashoffset: 132;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* =========================================
+   FACILITY INTERACTIVE HOTSPOTS
+   ========================================= */
+
+.map-facility-btn {
   position: absolute;
-  transform: translate(-50%, -50%);
+  background: transparent;
+  border: none !important;
+  outline: none !important;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 15;
+  border-radius: 8px;
+  display: block;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Factory & Facilities Hotspot Positions on arena-map.jpg (1672x941) */
+.map-facility-btn.facility-1-btn {
+  top: 10%;
+  left: 3.2%;
+  width: 23.5%;
+  height: 38%;
+}
+
+.map-facility-btn.facility-2-btn {
+  top: 33.5%;
+  left: 29.5%;
+  width: 16.5%;
+  height: 24%;
+}
+
+.map-facility-btn.facility-3-btn {
+  top: 55.5%;
+  left: 53.5%;
+  width: 18.5%;
+  height: 29%;
+}
+
+.map-facility-btn.facility-4-btn {
+  top: 37%;
+  left: 79%;
+  width: 18.5%;
+  height: 29%;
+}
+
+/* Hover, Focus & Active States with ZERO borders */
+.map-facility-btn:hover,
+.map-facility-btn:focus,
+.map-facility-btn:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.map-facility-btn:active {
+  transform: scale(0.985);
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================
+   FACILITY TERMINAL MODAL DIALOG
+   ========================================= */
+
+.facility-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(2, 4, 8, 0.32);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 1rem;
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.facility-modal-card {
+  position: relative;
+  width: 96vw;
+  max-width: 1440px;
+  height: 92vh;
+  max-height: 940px;
+  background: rgba(5, 8, 16, 0.92);
+  border: 1px solid rgba(0, 255, 204, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(0, 255, 204, 0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalCardScale 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalCardScale {
+  from {
+    transform: scale(0.96) translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.facility-modal-close-btn {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.4rem;
+  z-index: 10;
+  background: rgba(12, 17, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.95rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.arena-room-slot:hover {
-  transform: translate(-50%, -54%) scale(1.05);
+.facility-modal-close-btn:hover {
+  background: rgba(255, 51, 102, 0.25);
+  border-color: #ff3366;
+  color: #ff3366;
+  box-shadow: 0 0 12px rgba(255, 51, 102, 0.3);
 }
 
-.arena-room-slot.room-1 {
-  top: 27%;
-  left: 26%;
+.facility-modal-body.empty-page {
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
-.arena-room-slot.room-2 {
-  top: 27%;
-  left: 74%;
+.facility-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
-.arena-room-slot.room-3 {
-  top: 73%;
-  left: 26%;
+.meta-item {
+  background: rgba(12, 17, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.arena-room-slot.room-4 {
-  top: 73%;
-  left: 74%;
+.meta-label {
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.08em;
 }
 
-.room-node-img {
-  max-width: 180px;
-  max-height: 180px;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.8));
-  transition: transform 0.25s ease, filter 0.25s ease;
-  pointer-events: auto;
+.meta-value {
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  color: #ffffff;
+  letter-spacing: 0.06em;
 }
 
-.arena-room-slot:hover .room-node-img {
-  filter: drop-shadow(0 0 30px rgba(0, 255, 204, 0.65)) brightness(1.1);
+.meta-value.status-online {
+  color: #00ffcc;
+  text-shadow: 0 0 6px rgba(0, 255, 204, 0.5);
 }
+
+.facility-intel-box {
+  background: rgba(0, 255, 204, 0.04);
+  border-left: 3px solid #00ffcc;
+  padding: 0.85rem 1rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.intel-text {
+  font-family: 'Cutive Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.facility-actions-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.facility-action-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.facility-action-btn.primary-btn {
+  background: rgba(0, 255, 204, 0.15);
+  border: 1px solid #00ffcc;
+  color: #00ffcc;
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
+}
+
+.facility-action-btn.primary-btn:hover {
+  background: #00ffcc;
+  color: #04070e;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.6);
+}
+
+.facility-action-btn.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.facility-action-btn.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 
 
 
