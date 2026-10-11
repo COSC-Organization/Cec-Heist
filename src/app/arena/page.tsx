@@ -165,6 +165,41 @@ const FACILITIES = [
   },
 ];
 
+const PLAY_CARDS = [
+  {
+    id: "card-1",
+    number: "01",
+    title: "BREACH PROTOCOL",
+    desc: "Bypass perimeter surveillance and decrypt security keys to initiate sector access.",
+    status: "COMPLETED",
+    pic: "/arena/pic1.png",
+  },
+  {
+    id: "card-2",
+    number: "02",
+    title: "CIPHER DECRYPT",
+    desc: "Extract classified frequency ciphers from localized memory registers.",
+    status: "PENDING",
+    pic: "/arena/pic2.png",
+  },
+  {
+    id: "card-3",
+    number: "03",
+    title: "NEURAL OVERRIDE",
+    desc: "Deploy automated payload routines to disrupt command complex sentry units.",
+    status: "PENDING",
+    pic: "/arena/pic3.png",
+  },
+  {
+    id: "card-4",
+    number: "04",
+    title: "VAULT EXTRACTION",
+    desc: "Infiltrate fortified airborne vault and secure primary heist asset.",
+    status: "PENDING",
+    pic: "/arena/pic4.png",
+  },
+];
+
 // Calibrated Vector Path for Road 1 from 1arena-map.jpg
 const ROAD_1_PATH =
   "M 307 340 C 310.0 342.5, 316.0 349.5, 322 355 C 326.3 359.2, 332.0 364.5, 337 369 C 342.0 373.5, 347.0 378.0, 352 382 C 357.0 386.0, 362.0 390.2, 367 393 C 372.0 395.8, 377.0 397.5, 382 399 C 387.0 400.5, 392.0 401.8, 397 402 C 402.0 402.2, 407.0 400.2, 412 400 C 417.0 399.8, 422.0 401.0, 427 401 C 432.0 401.0, 437.0 400.5, 442 400 C 447.0 399.5, 452.0 398.5, 457 398 C 462.0 397.5, 467.0 397.2, 472 397 C 477.0 396.8, 484.5 397.0, 487 397 C 492.0 397.0, 495.0 397.0, 498 397";
@@ -416,10 +451,50 @@ export default function ArenaPage() {
             </button>
             <div className="facility-modal-body empty-page">
               <div className="facility-quad-columns">
-                <div className="facility-column-box box-1" />
-                <div className="facility-column-box box-2" />
-                <div className="facility-column-box box-3" />
-                <div className="facility-column-box box-4" />
+                {PLAY_CARDS.map((card, idx) => (
+                  <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
+                    <span className="box-corner-num">{card.number}</span>
+                    <div className="playcard-img-wrap">
+                      <img
+                        src={card.pic}
+                        alt={`Card ${card.number}`}
+                        className="playcard-img"
+                        onError={(e) => {
+                          // Hide broken image placeholder until user adds the file
+                          (e.target as HTMLElement).style.opacity = "0";
+                        }}
+                        onLoad={(e) => {
+                          (e.target as HTMLElement).style.opacity = "1";
+                        }}
+                      />
+                    </div>
+                    <div className="playcard-body">
+                      <h4 className="playcard-title">{card.title}</h4>
+                      <p className="playcard-desc">{card.desc}</p>
+                      <div className="playcard-status-row">
+                        <span className="status-label">STATUS</span>
+                        <span
+                          className={`playcard-status-badge ${
+                            card.status === "COMPLETED"
+                              ? "status-completed"
+                              : "status-pending"
+                          }`}
+                        >
+                          ● {card.status}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="playcard-enter-btn"
+                      onClick={() => {
+                        playCyberClick();
+                      }}
+                    >
+                      [ ENTER ]
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
