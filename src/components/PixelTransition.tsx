@@ -30,20 +30,20 @@ export const playPixelSweep = (direction: TransitionDirection = "left-to-right")
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.035);
+      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
       osc.frequency.exponentialRampToValueAtTime(
         direction === "left-to-right" ? freq * 1.15 : freq * 0.85,
-        now + idx * 0.035 + 0.035
+        now + idx * 0.07 + 0.07
       );
 
-      gain.gain.setValueAtTime(0.07, now + idx * 0.035);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.035 + 0.035);
+      gain.gain.setValueAtTime(0.07, now + idx * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.07);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      osc.start(now + idx * 0.035);
-      osc.stop(now + idx * 0.035 + 0.035);
+      osc.start(now + idx * 0.07);
+      osc.stop(now + idx * 0.07 + 0.07);
     });
 
     // Mechanical sweep / sub-bass thud
@@ -51,13 +51,13 @@ export const playPixelSweep = (direction: TransitionDirection = "left-to-right")
     const gainLow = ctx.createGain();
     oscLow.type = "triangle";
     oscLow.frequency.setValueAtTime(120, now);
-    oscLow.frequency.exponentialRampToValueAtTime(30, now + 0.45);
+    oscLow.frequency.exponentialRampToValueAtTime(30, now + 0.85);
     gainLow.gain.setValueAtTime(0.18, now);
-    gainLow.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    gainLow.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
     oscLow.connect(gainLow);
     gainLow.connect(ctx.destination);
     oscLow.start(now);
-    oscLow.stop(now + 0.45);
+    oscLow.stop(now + 0.85);
   } catch {
     // Audio not supported or blocked
   }
@@ -75,15 +75,15 @@ interface CellConfig {
   isGlitch: boolean;
 }
 
-// Precomputed grid cells for deterministic sweeps
+// Precomputed grid cells for slower, more cinematic sweeps
 const CELLS: CellConfig[] = [];
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
-    const jitter = ((r * 3 + c * 7) % 5) * 10;
-    // Left-to-right: col 0 starts at 0ms, sweeping towards right (col 19)
-    const delayLTR = c * 16 + jitter;
-    // Right-to-left: col 19 starts at 0ms, sweeping towards left (col 0)
-    const delayRTL = (COLS - 1 - c) * 16 + jitter;
+    const jitter = ((r * 3 + c * 7) % 5) * 14;
+    // Left-to-right: 32ms per column for a smoother, slower sweep
+    const delayLTR = c * 32 + jitter;
+    // Right-to-left: 32ms per column
+    const delayRTL = (COLS - 1 - c) * 32 + jitter;
     const isAccent = (r * 7 + c * 13) % 7 === 0;
     const isGlitch = (r * 11 + c * 5) % 17 === 0;
     CELLS.push({ row: r, col: c, delayLTR, delayRTL, isAccent, isGlitch });
@@ -136,10 +136,10 @@ export function PixelTransitionProvider({ children }: { children: React.ReactNod
       // Single animation pass: light white pixel boxes sweep in the designated direction
       setPhase("revealing");
 
-      // Maximum delay is (19 * 16) + 40 = 344ms, animation duration 220ms => total 564ms
+      // Maximum delay is (19 * 32) + 56 = 664ms, animation duration 450ms => total ~1114ms
       const t1 = setTimeout(() => {
         setPhase("idle");
-      }, 580);
+      }, 1150);
       timeoutRef.current.push(t1);
     },
     [phase, router]

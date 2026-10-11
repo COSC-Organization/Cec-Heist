@@ -770,7 +770,7 @@ html, body {
 .pixel-cell.anim-reveal-ltr {
   opacity: 1;
   transform: translateX(0) scale(1);
-  animation: pixelMoveOutLeftToRight 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pixelMoveOutLeftToRight 0.45s cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 
 @keyframes pixelMoveOutLeftToRight {
@@ -778,7 +778,7 @@ html, body {
     transform: translateX(0) scale(1);
     opacity: 1;
   }
-  40% {
+  35% {
     opacity: 1;
   }
   100% {
@@ -791,7 +791,7 @@ html, body {
 .pixel-cell.anim-reveal-rtl {
   opacity: 1;
   transform: translateX(0) scale(1);
-  animation: pixelMoveOutRightToLeft 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pixelMoveOutRightToLeft 0.45s cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 
 @keyframes pixelMoveOutRightToLeft {
@@ -799,7 +799,7 @@ html, body {
     transform: translateX(0) scale(1);
     opacity: 1;
   }
-  40% {
+  35% {
     opacity: 1;
   }
   100% {
