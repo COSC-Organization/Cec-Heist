@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Pixelify_Sans, Space_Mono, VT323 } from "next/font/google";
 import "./globals.css";
+import ZoomLock from "../components/ZoomLock";
 
 const pixelify = Pixelify_Sans({
   variable: "--font-pixelify",
@@ -25,6 +26,13 @@ export const metadata: Metadata = {
   description: "CEC HEIST 2026 Official Application",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +40,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${pixelify.variable} ${spaceMono.variable} ${vt323.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ZoomLock />
+        {children}
+      </body>
     </html>
   );
 }

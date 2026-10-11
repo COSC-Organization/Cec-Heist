@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -105,8 +107,41 @@ const ScrambleText = ({ text }: { text: string }) => {
 };
 
 export default function Home() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    playCyberClick();
+
+    if (href.startsWith("#") || href.startsWith("/#")) {
+      setMenuOpen(false);
+      const hash = href.includes("#") ? href.substring(href.indexOf("#") + 1) : "";
+      if (pathname === "/" || pathname === "") {
+        const elem = document.getElementById(hash);
+        if (elem) elem.scrollIntoView({ behavior: "smooth" });
+      } else {
+        setTimeout(() => {
+          router.push(href);
+        }, 580);
+      }
+      return;
+    }
+
+    if (pathname === href) {
+      setMenuOpen(false);
+      return;
+    }
+
+    router.prefetch(href);
+    setMenuOpen(false);
+
+    setTimeout(() => {
+      router.push(href);
+    }, 580);
+  };
 
   useEffect(() => {
     const handleFirstClick = () => {
@@ -165,10 +200,10 @@ export default function Home() {
           <div className="header-menu-content">
             <div className="menu-modal-header">{"// CEC HEIST 2K26 INDEX"}</div>
             <nav className="menu-nav-list">
-              <a href="#about" className="menu-nav-item" onClick={() => { setMenuOpen(false); playCyberClick(); }}><ScrambleText text="01. ABOUT HEIST" /></a>
-              <a href="#schedule" className="menu-nav-item" onClick={() => { setMenuOpen(false); playCyberClick(); }}><ScrambleText text="02. SCHEDULE" /></a>
-              <a href="#rules" className="menu-nav-item" onClick={() => { setMenuOpen(false); playCyberClick(); }}><ScrambleText text="03. RULES & ACCESS" /></a>
-              <a href="#contact" className="menu-nav-item" onClick={() => { setMenuOpen(false); playCyberClick(); }}><ScrambleText text="04. CONTACT COSC" /></a>
+              <Link href="/" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/")}><ScrambleText text="01. HOME" /></Link>
+              <Link href="/arena" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/arena")}><ScrambleText text="02. ARENA" /></Link>
+              <Link href="/#leaderboard" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/#leaderboard")}><ScrambleText text="03. LEADERBOARD" /></Link>
+              <Link href="/#profile" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/#profile")}><ScrambleText text="04. PROFILE" /></Link>
             </nav>
             
             <img 
@@ -224,8 +259,46 @@ export default function Home() {
             alt="Tagline"
             className="hero-img hero-img-tagline"
           />
+
+          {/* Enter The Arena Gooey Button */}
+          <Link 
+            href="/arena"
+            className="arena-enter-btn gooey-button"
+            onClick={() => playCyberClick()}
+            onPointerMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left + 12}px`);
+              e.currentTarget.style.setProperty('--y', `${e.clientY - rect.top + 12}px`);
+            }}
+          >
+            <span className="gooey-bg" aria-hidden="true">
+              <span className="gooey-base" />
+              <span className="gooey-blob" />
+              <span className="gooey-bubble b1" />
+              <span className="gooey-bubble b2" />
+              <span className="gooey-bubble b3" />
+            </span>
+            <span className="arena-btn-content">
+              <span className="bracket">[</span>
+              <ScrambleText text="ENTER THE ARENA" />
+              <span className="bracket">]</span>
+            </span>
+          </Link>
         </div>
       </div>
+
+      {/* SVG Gooey Filter */}
+      <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none" }}>
+        <filter id="goo" x="-50%" y="-50%" width="200%" height="200%">
+          <feComponentTransfer>
+            <feFuncA type="discrete" tableValues="0 1" />
+          </feComponentTransfer>
+          <feGaussianBlur stdDeviation="5" />
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="-5 11" />
+          </feComponentTransfer>
+        </filter>
+      </svg>
 
       {/* Cyber Crime Banner */}
       <div className="cyber-marquee-container">
