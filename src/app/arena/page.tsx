@@ -414,7 +414,12 @@ export default function ArenaPage() {
               [×]
             </button>
             <div className="facility-modal-body empty-page">
-              {/* Empty page - content will be added later */}
+              <div className="facility-quad-columns">
+                <div className="facility-column-box box-1" />
+                <div className="facility-column-box box-2" />
+                <div className="facility-column-box box-3" />
+                <div className="facility-column-box box-4" />
+              </div>
             </div>
           </div>
         </div>
