@@ -123,9 +123,12 @@ export function PixelTransitionProvider({ children }: { children: React.ReactNod
 
       clearAllTimeouts();
 
-      // Home -> Arena travels left to right; Arena -> Home travels right to left
+      // Home -> Arena/Leaderboard travels left to right; return travels right to left
       const resolvedDir: TransitionDirection =
-        explicitDirection || (targetUrl.includes("arena") ? "left-to-right" : "right-to-left");
+        explicitDirection ||
+        (targetUrl.includes("arena") || targetUrl.includes("leaderboard")
+          ? "left-to-right"
+          : "right-to-left");
 
       setDirection(resolvedDir);
       playPixelSweep(resolvedDir);

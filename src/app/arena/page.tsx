@@ -146,6 +146,12 @@ export default function ArenaPage() {
       return;
     }
 
+    if (href === "/leaderboard") {
+      setMenuOpen(false);
+      triggerTransition("/leaderboard", "left-to-right");
+      return;
+    }
+
     router.prefetch(href);
     setMenuOpen(false);
 
@@ -196,6 +202,7 @@ export default function ArenaPage() {
               alt="Menu"
               width={100}
               height={24}
+              draggable={false}
               style={{
                 objectFit: "contain",
                 position: "absolute",
@@ -237,9 +244,9 @@ export default function ArenaPage() {
                 <ScrambleText text="02. ARENA" />
               </Link>
               <Link
-                href="/#leaderboard"
+                href="/leaderboard"
                 className="menu-nav-item"
-                onClick={(e) => handleNavClick(e, "/#leaderboard")}
+                onClick={(e) => handleNavClick(e, "/leaderboard")}
               >
                 <ScrambleText text="03. LEADERBOARD" />
               </Link>
@@ -256,6 +263,7 @@ export default function ArenaPage() {
               src="/homepage/menu-image.png"
               alt="Menu Decor"
               className="menu-decor-image"
+              draggable={false}
             />
           </div>
         </div>

@@ -808,6 +808,337 @@ html, body {
   }
 }
 
+/* =========================================
+   SIMPLE LEADERBOARD STYLES (RANK | TEAM | SCORE)
+   ========================================= */
+
+.leaderboard-screen {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  background-color: #000000;
+  background-image: radial-gradient(circle at 50% 25%, #18080a 0%, #080304 45%, #020202 100%);
+  color: #ffffff;
+}
+
+.leaderboard-content-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.simple-leaderboard-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 7.2rem 1.5rem 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.leaderboard-title-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.leaderboard-title-img {
+  max-width: min(540px, 88vw);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.22));
+  user-select: none;
+  pointer-events: none;
+}
+
+.simple-leaderboard-title {
+  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+  letter-spacing: 5px;
+  color: #ffffff;
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+  margin: 0;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Small, perfectly placed Leaderboard Top Bar */
+.leaderboard-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 0.25rem;
+  margin-bottom: -0.25rem;
+}
+
+.leaderboard-count-badge {
+  font-size: 0.78rem;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+/* Small, Sleek Cyber Search Box */
+.search-team-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 220px;
+  height: 32px;
+  background: rgba(8, 8, 12, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  padding: 0 0.55rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.search-team-wrapper:focus-within {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+  background: rgba(14, 14, 20, 0.95);
+}
+
+.search-team-icon {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: 0.4rem;
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.search-team-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.search-team-input::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.search-clear-btn:hover {
+  color: #ffffff;
+}
+
+.simple-leaderboard-card {
+  width: 100%;
+  background: rgba(10, 10, 14, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.simple-table-header {
+  display: grid;
+  grid-template-columns: 130px 1fr 180px;
+  padding: 1.1rem 1.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.88rem;
+  letter-spacing: 2.5px;
+  color: #a1a1aa;
+}
+
+.simple-table-header .col-score {
+  text-align: right;
+}
+
+.simple-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.simple-table-empty {
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+.simple-table-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 180px;
+  padding: 1.15rem 1.8rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.18s ease, transform 0.18s ease;
+  position: relative;
+}
+
+.simple-table-row:last-child {
+  border-bottom: none;
+}
+
+.simple-table-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.simple-table-row .col-rank {
+  font-size: 1.12rem;
+  letter-spacing: 2px;
+  color: #a1a1aa;
+}
+
+.simple-table-row .col-team {
+  font-size: 1.08rem;
+  letter-spacing: 2px;
+  color: #ffffff;
+}
+
+.simple-table-row .col-score {
+  font-size: 1.12rem;
+  letter-spacing: 2px;
+  text-align: right;
+  color: #4ade80;
+}
+
+/* Rank 1 (Gold) */
+.simple-table-row.row-rank-1 {
+  background: rgba(234, 179, 8, 0.07);
+  border-left: 3px solid #eab308;
+}
+
+.simple-table-row.row-rank-1 .col-rank {
+  color: #facc15;
+  font-weight: 700;
+}
+
+.simple-table-row.row-rank-1 .col-team {
+  color: #fef08a;
+}
+
+.simple-table-row.row-rank-1 .col-score {
+  color: #fde047;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+}
+
+/* Rank 2 (Silver) */
+.simple-table-row.row-rank-2 {
+  background: rgba(203, 213, 225, 0.05);
+  border-left: 3px solid #cbd5e1;
+}
+
+.simple-table-row.row-rank-2 .col-rank {
+  color: #e2e8f0;
+}
+
+.simple-table-row.row-rank-2 .col-team {
+  color: #f8fafc;
+}
+
+.simple-table-row.row-rank-2 .col-score {
+  color: #cbd5e1;
+}
+
+/* Rank 3 (Bronze) */
+.simple-table-row.row-rank-3 {
+  background: rgba(217, 119, 6, 0.05);
+  border-left: 3px solid #d97706;
+}
+
+.simple-table-row.row-rank-3 .col-rank {
+  color: #fb923c;
+}
+
+.simple-table-row.row-rank-3 .col-team {
+  color: #fed7aa;
+}
+
+.simple-table-row.row-rank-3 .col-score {
+  color: #fb923c;
+}
+
+@media (max-width: 640px) {
+  .leaderboard-top-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .search-team-wrapper {
+    width: 175px;
+    height: 30px;
+  }
+  .search-team-input {
+    font-size: 0.68rem;
+  }
+  .leaderboard-count-badge {
+    font-size: 0.72rem;
+  }
+  .simple-table-header,
+  .simple-table-row {
+    grid-template-columns: 80px 1fr 120px;
+    padding: 0.95rem 1.1rem;
+  }
+  .simple-table-row .col-rank {
+    font-size: 0.95rem;
+  }
+  .simple-table-row .col-team {
+    font-size: 0.92rem;
+  }
+  .simple-table-row .col-score {
+    font-size: 0.95rem;
+  }
+}
+
+/* =========================================
+   LOCK ALL PNGs AND IMAGES (NO DRAG, NO SELECT)
+   ========================================= */
+
+img,
+image,
+picture {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
+}
+
+/* Allow interaction only for clickable links/buttons containing images */
+a img,
+button img,
+.header-brand img,
+.interactive-img {
+  pointer-events: auto;
+}
+
 
 
 

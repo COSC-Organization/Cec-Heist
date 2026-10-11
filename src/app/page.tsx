@@ -143,6 +143,12 @@ export default function Home() {
       return;
     }
 
+    if (href === "/leaderboard") {
+      setMenuOpen(false);
+      triggerTransition("/leaderboard", "left-to-right");
+      return;
+    }
+
     router.prefetch(href);
     setMenuOpen(false);
 
@@ -210,7 +216,7 @@ export default function Home() {
             <nav className="menu-nav-list">
               <Link href="/" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/")}><ScrambleText text="01. HOME" /></Link>
               <Link href="/arena" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/arena")}><ScrambleText text="02. ARENA" /></Link>
-              <Link href="/#leaderboard" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/#leaderboard")}><ScrambleText text="03. LEADERBOARD" /></Link>
+              <Link href="/leaderboard" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/leaderboard")}><ScrambleText text="03. LEADERBOARD" /></Link>
               <Link href="/#profile" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/#profile")}><ScrambleText text="04. PROFILE" /></Link>
             </nav>
             
@@ -229,6 +235,7 @@ export default function Home() {
           src="/homepage/wheel.png"
           alt="Vault Wheel Left"
           className="side-wheel-img side-wheel-rotate-cw"
+          draggable={false}
         />
       </div>
       <div className="side-wheel-container side-wheel-right">
@@ -236,6 +243,7 @@ export default function Home() {
           src="/homepage/wheel.png"
           alt="Vault Wheel Right"
           className="side-wheel-img side-wheel-rotate-ccw"
+          draggable={false}
         />
       </div>
 
@@ -246,26 +254,31 @@ export default function Home() {
             src="/homepage/cosc.png"
             alt="COSC"
             className="hero-img hero-img-cosc"
+            draggable={false}
           />
           <img
             src="/homepage/presents.png"
             alt="Presents"
             className="hero-img hero-img-presents"
+            draggable={false}
           />
           <img
             src="/homepage/cec-heist.png"
             alt="CEC Heist"
             className="hero-img hero-img-cec-heist"
+            draggable={false}
           />
           <img
             src="/homepage/2026.png"
             alt="2026"
             className="hero-img hero-img-2026"
+            draggable={false}
           />
           <img
             src="/homepage/tagline.png"
             alt="Tagline"
             className="hero-img hero-img-tagline"
+            draggable={false}
           />
 
           {/* Enter The Arena Gooey Button */}
