@@ -127,6 +127,56 @@ const LEADERBOARD_DATA: LeaderboardEntry[] = [
   { rank: 8, teamName: "QUANTUM_HEIST", score: 5920 },
   { rank: 9, teamName: "DARK_SOLARIS", score: 5180 },
   { rank: 10, teamName: "VECTOR_CORPS", score: 4620 },
+  { rank: 11, teamName: "SYNAPSE_RAIDERS", score: 4410 },
+  { rank: 12, teamName: "OMEGA_CIPHER", score: 4280 },
+  { rank: 13, teamName: "ROOT_FORCE", score: 4150 },
+  { rank: 14, teamName: "MR_ROBOT_CREW", score: 4020 },
+  { rank: 15, teamName: "BIT_INFILTRATORS", score: 3890 },
+  { rank: 16, teamName: "NULL_POINTERS", score: 3760 },
+  { rank: 17, teamName: "SHADOW_BROKERS", score: 3640 },
+  { rank: 18, teamName: "GLITCH_MOB", score: 3520 },
+  { rank: 19, teamName: "RECON_SQUAD_07", score: 3410 },
+  { rank: 20, teamName: "BINARY_GHOSTS", score: 3300 },
+  { rank: 21, teamName: "KALI_LEGION", score: 3190 },
+  { rank: 22, teamName: "SPECTRE_PROTOCOL", score: 3080 },
+  { rank: 23, teamName: "PACKET_SNIFFERS", score: 2980 },
+  { rank: 24, teamName: "FIREWALL_BREACH", score: 2870 },
+  { rank: 25, teamName: "HEX_OVERLORDS", score: 2770 },
+  { rank: 26, teamName: "DAEMON_HUNTERS", score: 2680 },
+  { rank: 27, teamName: "LOGIC_BOMBERS", score: 2590 },
+  { rank: 28, teamName: "CIPHER_PUNKS", score: 2500 },
+  { rank: 29, teamName: "STEALTH_OPS_X", score: 2410 },
+  { rank: 30, teamName: "CYBER_PHANTOMS", score: 2330 },
+  { rank: 31, teamName: "BUFFER_OVERFLOW", score: 2250 },
+  { rank: 32, teamName: "MALWARE_MASTERS", score: 2170 },
+  { rank: 33, teamName: "ENIGMA_CORPS", score: 2090 },
+  { rank: 34, teamName: "ECHO_CHAMBER", score: 2020 },
+  { rank: 35, teamName: "GRID_RUNNERS", score: 1950 },
+  { rank: 36, teamName: "PAYLOAD_PIRATES", score: 1880 },
+  { rank: 37, teamName: "DECRYPT_KNIGHTS", score: 1810 },
+  { rank: 38, teamName: "VOID_WALKERS", score: 1740 },
+  { rank: 39, teamName: "KERNEL_PANIC", score: 1680 },
+  { rank: 40, teamName: "BLACK_HAT_ELITE", score: 1620 },
+  { rank: 41, teamName: "NEURAL_NETWORKS", score: 1560 },
+  { rank: 42, teamName: "SYNTAX_TERROR", score: 1500 },
+  { rank: 43, teamName: "OVERCLOCK_CREW", score: 1440 },
+  { rank: 44, teamName: "CIRCUIT_BREAKERS", score: 1390 },
+  { rank: 45, teamName: "DIGITAL_VANDALS", score: 1340 },
+  { rank: 46, teamName: "SCRIPT_KIDDIES", score: 1290 },
+  { rank: 47, teamName: "BRUTE_FORCERS", score: 1240 },
+  { rank: 48, teamName: "PROTOCOL_ZERO", score: 1190 },
+  { rank: 49, teamName: "MEMORY_LEAK", score: 1150 },
+  { rank: 50, teamName: "SUBROUTINE_X", score: 1100 },
+  { rank: 51, teamName: "ZERO_COOL", score: 1060 },
+  { rank: 52, teamName: "ACID_BURN", score: 1020 },
+  { rank: 53, teamName: "CRASH_OVERRIDE", score: 980 },
+  { rank: 54, teamName: "THE_PLAGUE", score: 940 },
+  { rank: 55, teamName: "LORD_NIKON", score: 900 },
+  { rank: 56, teamName: "PHREAKERS_UNITED", score: 860 },
+  { rank: 57, teamName: "DATA_DRIFTERS", score: 820 },
+  { rank: 58, teamName: "STACK_TRACERS", score: 790 },
+  { rank: 59, teamName: "BIT_SHIFT_BOYS", score: 750 },
+  { rank: 60, teamName: "HEIST_NEWBIES", score: 710 },
 ];
 
 export default function LeaderboardPage() {
@@ -297,6 +347,24 @@ export default function LeaderboardPage() {
         </div>
       </header>
 
+      {/* Vault Wheel Machinery on Left & Right Borders */}
+      <div className="side-wheel-container side-wheel-left">
+        <img
+          src="/homepage/wheel.png"
+          alt="Vault Wheel Left"
+          className="side-wheel-img side-wheel-rotate-cw"
+          draggable={false}
+        />
+      </div>
+      <div className="side-wheel-container side-wheel-right">
+        <img
+          src="/homepage/wheel.png"
+          alt="Vault Wheel Right"
+          className="side-wheel-img side-wheel-rotate-ccw"
+          draggable={false}
+        />
+      </div>
+
       {/* Simple Leaderboard Content */}
       <div className="leaderboard-content-wrapper">
         <div className="simple-leaderboard-container">
@@ -374,7 +442,7 @@ export default function LeaderboardPage() {
                         {entry.teamName}
                       </div>
                       <div className="col-score font-pixel">
-                        {entry.score.toLocaleString()} PTS
+                        {entry.score.toLocaleString()}
                       </div>
                     </div>
                   );
