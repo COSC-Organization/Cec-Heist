@@ -402,6 +402,7 @@ export default function ArenaPage() {
             className="facility-modal-card"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="scanlines-overlay" />
             <button
               type="button"
               className="facility-modal-close-btn"
