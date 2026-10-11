@@ -173,9 +173,8 @@ export default function ArenaPage() {
   }, []);
 
   return (
-    <main className="crt-screen arena-screen">
+    <main className="arena-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
-      <div className="scanlines-overlay" />
 
       {/* Header Pill */}
       <header className="header-wrapper">
@@ -238,7 +237,7 @@ export default function ArenaPage() {
               </Link>
               <Link
                 href="/arena"
-                className="menu-nav-item"
+                className="menu-nav-item active"
                 onClick={(e) => handleNavClick(e, "/arena")}
               >
                 <ScrambleText text="02. ARENA" />
@@ -269,9 +268,15 @@ export default function ArenaPage() {
         </div>
       </header>
 
-      {/* Arena Main Content Area */}
-      <div className="arena-content-wrapper" />
-
+      {/* Platform Map Background */}
+      <div className="arena-map-container">
+        <img
+          src="/arena/arena-map.jpg"
+          alt="Arena Platform Map Background"
+          className="arena-map-bg-img"
+          draggable={false}
+        />
+      </div>
     </main>
   );
 }
