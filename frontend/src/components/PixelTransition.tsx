@@ -134,32 +134,37 @@ export function PixelTransitionProvider({
           ? "left-to-right"
           : "right-to-left");
 
-      // Snapshot the current page DOM before routing
+      // 1. Snapshot the current page DOM before navigating
       const mainEl = document.querySelector("main");
       if (mainEl) {
         const clone = mainEl.cloneNode(true) as HTMLElement;
         clone
-          .querySelectorAll("audio, .scanlines-overlay, .side-wheel-container")
+          .querySelectorAll("audio, .scanlines-overlay")
           .forEach((el) => el.remove());
         clone.style.pointerEvents = "none";
-        clone.style.background = "transparent";
-        clone.style.boxShadow = "none";
         setSnapshotHtml(clone.outerHTML);
+      }
+
+      // Warm up destination route in background so switch is instantaneous
+      try {
+        router.prefetch(targetUrl);
+      } catch {
+        // prefetch fallback
       }
 
       setDirection(resolvedDir);
       setIsTransitioning(true);
       playVaultTransitionSound(resolvedDir);
 
-      // Navigate immediately: new page mounts underneath the snapshot
+      // Navigate immediately: new page mounts and slides into view in unison
       router.push(targetUrl);
 
-      // Single continuous pass across the screen (no stops): 1.15s
-      const t1 = setTimeout(() => {
+      // Complete transition when the slide finishes (1.12s)
+      const tEnd = setTimeout(() => {
         setIsTransitioning(false);
         setSnapshotHtml(null);
-      }, 1180);
-      timeoutRef.current.push(t1);
+      }, 1120);
+      timeoutRef.current.push(tEnd);
     },
     [isTransitioning, router]
   );
@@ -171,33 +176,42 @@ export function PixelTransitionProvider({
         isTransitioning,
       }}
     >
-      {children}
-
-      {/* Single-Pass Live Wheel Wipe Transition */}
-      {isTransitioning && snapshotHtml && (
-        <div
-          className={`wheel-wipe-overlay dir-${direction}`}
-          aria-hidden="true"
-        >
-          {/* Old Page Snapshot (Clipped away in the wake of the rolling wheel) */}
+      <div className="page-slide-viewport">
+        {/* Old Page Panel (slides out synchronously with the rolling wheel) */}
+        {isTransitioning && snapshotHtml && (
           <div
-            className={`wheel-wipe-snapshot clip-${direction}`}
+            className={`page-slide-panel old-page-panel slide-old-${direction}`}
+            aria-hidden="true"
             dangerouslySetInnerHTML={{ __html: snapshotHtml }}
           />
+        )}
 
-          {/* The Rolling Vault Wheel at the dividing boundary */}
-          <div className={`wheel-wipe-runner roll-${direction}`}>
+        {/* New / Current Page Panel (slides in synchronously with the rolling wheel) */}
+        <div
+          className={`page-slide-panel new-page-panel ${
+            isTransitioning ? `slide-new-${direction}` : ""
+          }`}
+        >
+          {children}
+        </div>
+
+        {/* The Rolling Vault Wheel traveling right at the seam between the two sliding pages */}
+        {isTransitioning && (
+          <div
+            className={`wheel-seam-runner roll-${direction}`}
+            aria-hidden="true"
+          >
             <img
               src="/homepage/wheel.png"
               alt="Vault Wheel"
-              className={`wheel-wipe-img spin-${
+              className={`wheel-seam-img spin-${
                 direction === "left-to-right" ? "cw" : "ccw"
               }`}
               draggable={false}
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </PixelTransitionContext.Provider>
   );
 }
