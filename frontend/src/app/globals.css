@@ -746,7 +746,7 @@ img, image, picture img {
   user-select: none;
 }
 
-/* Old Page Snapshot Container */
+/* Old Page Snapshot Container (Seamless feathered wipe under the rolling wheel) */
 .wheel-wipe-snapshot {
   position: absolute;
   inset: 0;
@@ -754,41 +754,56 @@ img, image, picture img {
   height: 100vh;
   overflow: hidden;
   pointer-events: none;
-  will-change: clip-path;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Ensure the snapshot's cloned main spans the viewport */
+/* Ensure the snapshot's cloned main spans the viewport without duplicate borders or shadows */
 .wheel-wipe-snapshot > * {
   width: 100vw !important;
   height: 100vh !important;
   pointer-events: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Clip old page from Left to Right: reveal new page as the wheel passes through */
+/* Blend old page from Left to Right: smooth feathered mask following the rolling wheel */
 .wheel-wipe-snapshot.clip-left-to-right {
-  animation: clipOldPageLTR 1.15s cubic-bezier(0.3, 0.05, 0.2, 1) forwards;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 35%, rgba(0, 0, 0, 0.5) 48%, black 65%, black 100%);
+  mask-image: linear-gradient(to right, transparent 0%, transparent 35%, rgba(0, 0, 0, 0.5) 48%, black 65%, black 100%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  animation: blendOldPageLTR 1.15s cubic-bezier(0.3, 0.05, 0.2, 1) forwards;
 }
 
-/* Clip old page from Right to Left: reveal new page as the wheel passes through */
+/* Blend old page from Right to Left: smooth feathered mask following the rolling wheel */
 .wheel-wipe-snapshot.clip-right-to-left {
-  animation: clipOldPageRTL 1.15s cubic-bezier(0.3, 0.05, 0.2, 1) forwards;
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0, 0, 0, 0.5) 52%, transparent 65%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, black 35%, rgba(0, 0, 0, 0.5) 52%, transparent 65%, transparent 100%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  animation: blendOldPageRTL 1.15s cubic-bezier(0.3, 0.05, 0.2, 1) forwards;
 }
 
-@keyframes clipOldPageLTR {
+@keyframes blendOldPageLTR {
   0% {
-    clip-path: inset(0 0 0 0%);
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
   100% {
-    clip-path: inset(0 0 0 100%);
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
   }
 }
 
-@keyframes clipOldPageRTL {
+@keyframes blendOldPageRTL {
   0% {
-    clip-path: inset(0 0% 0 0);
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
   }
   100% {
-    clip-path: inset(0 100% 0 0);
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
 }
 
@@ -1789,6 +1804,60 @@ button img,
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.4);
 }
+
+/* =========================================
+   HOMEPAGE MOUSE HOVER IMAGE TRAIL
+   ========================================= */
+
+.mouse-trail-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 22;
+  overflow: hidden;
+}
+
+.mouse-trail-item {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  animation: mouseTrailFade 1s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.mouse-trail-img {
+  max-width: clamp(65px, 9vw, 115px);
+  max-height: clamp(65px, 9vw, 115px);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.7));
+  will-change: transform;
+}
+
+@keyframes mouseTrailFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.08) translateY(-14px);
+  }
+}
+
 
 
 

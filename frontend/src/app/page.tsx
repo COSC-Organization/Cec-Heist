@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../components/PixelTransition";
+import MouseTrail from "../components/MouseTrail";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -171,6 +172,7 @@ export default function Home() {
 
   return (
     <main className="crt-screen">
+      <MouseTrail />
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
       <div className="scanlines-overlay" />
 

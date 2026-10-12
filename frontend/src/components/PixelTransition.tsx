@@ -138,8 +138,12 @@ export function PixelTransitionProvider({
       const mainEl = document.querySelector("main");
       if (mainEl) {
         const clone = mainEl.cloneNode(true) as HTMLElement;
-        clone.querySelectorAll("audio").forEach((el) => el.remove());
+        clone
+          .querySelectorAll("audio, .scanlines-overlay, .side-wheel-container")
+          .forEach((el) => el.remove());
         clone.style.pointerEvents = "none";
+        clone.style.background = "transparent";
+        clone.style.boxShadow = "none";
         setSnapshotHtml(clone.outerHTML);
       }
 
