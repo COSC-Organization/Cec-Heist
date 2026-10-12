@@ -1,12 +1,21 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
 
 export type TransitionDirection = "left-to-right" | "right-to-left";
 
-// Web Audio API Sound Generator for Pixel Sweep
-export const playPixelSweep = (direction: TransitionDirection = "left-to-right") => {
+// Web Audio API Sound Generator for Smooth Mechanical Vault Wheel Roll
+export const playVaultTransitionSound = (
+  direction: TransitionDirection = "left-to-right"
+) => {
   if (typeof window === "undefined") return;
   try {
     const AudioContextClass =
@@ -19,79 +28,68 @@ export const playPixelSweep = (direction: TransitionDirection = "left-to-right")
       ctx.resume();
     }
     const now = ctx.currentTime;
+    const dur = 1.15;
 
-    // Ascending tones for entering Arena (LTR), descending tones for returning Home (RTL)
-    const freqs =
-      direction === "left-to-right"
-        ? [180, 280, 380, 480, 600, 740]
-        : [740, 600, 480, 380, 280, 180];
+    // 1. Smooth mechanical friction / roll sound (filtered noise)
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
 
-    freqs.forEach((freq, idx) => {
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(360, now);
+    filter.frequency.linearRampToValueAtTime(420, now + dur * 0.5);
+    filter.frequency.exponentialRampToValueAtTime(140, now + dur);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.01, now);
+    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
+    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.85);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    whiteNoise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    whiteNoise.start(now);
+    whiteNoise.stop(now + dur);
+
+    // 2. Gentle mechanical gear clicks as cogwheel turns
+    const clickCount = 14;
+    for (let i = 0; i < clickCount; i++) {
+      const clickTime = now + (i / clickCount) * 1.0;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
-      osc.frequency.exponentialRampToValueAtTime(
-        direction === "left-to-right" ? freq * 1.15 : freq * 0.85,
-        now + idx * 0.07 + 0.07
-      );
+      osc.type = "triangle";
+      const freq =
+        direction === "left-to-right" ? 180 + i * 14 : 360 - i * 14;
+      osc.frequency.setValueAtTime(freq, clickTime);
 
-      gain.gain.setValueAtTime(0.07, now + idx * 0.07);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.07);
+      gain.gain.setValueAtTime(0.045, clickTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.04);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
-
-      osc.start(now + idx * 0.07);
-      osc.stop(now + idx * 0.07 + 0.07);
-    });
-
-    // Mechanical sweep / sub-bass thud
-    const oscLow = ctx.createOscillator();
-    const gainLow = ctx.createGain();
-    oscLow.type = "triangle";
-    oscLow.frequency.setValueAtTime(120, now);
-    oscLow.frequency.exponentialRampToValueAtTime(30, now + 0.85);
-    gainLow.gain.setValueAtTime(0.18, now);
-    gainLow.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-    oscLow.connect(gainLow);
-    gainLow.connect(ctx.destination);
-    oscLow.start(now);
-    oscLow.stop(now + 0.85);
+      osc.start(clickTime);
+      osc.stop(clickTime + 0.04);
+    }
   } catch {
-    // Audio not supported or blocked
+    // Audio context not allowed or unsupported
   }
 };
 
-const COLS = 20;
-const ROWS = 12;
-
-interface CellConfig {
-  row: number;
-  col: number;
-  delayLTR: number;
-  delayRTL: number;
-  isAccent: boolean;
-  isGlitch: boolean;
-}
-
-// Precomputed grid cells for slower, more cinematic sweeps
-const CELLS: CellConfig[] = [];
-for (let r = 0; r < ROWS; r++) {
-  for (let c = 0; c < COLS; c++) {
-    const jitter = ((r * 3 + c * 7) % 5) * 14;
-    // Left-to-right: 32ms per column for a smoother, slower sweep
-    const delayLTR = c * 32 + jitter;
-    // Right-to-left: 32ms per column
-    const delayRTL = (COLS - 1 - c) * 32 + jitter;
-    const isAccent = (r * 7 + c * 13) % 7 === 0;
-    const isGlitch = (r * 11 + c * 5) % 17 === 0;
-    CELLS.push({ row: r, col: c, delayLTR, delayRTL, isAccent, isGlitch });
-  }
-}
+// Backwards compatibility alias
+export const playPixelSweep = playVaultTransitionSound;
 
 interface PixelTransitionContextType {
-  triggerTransition: (targetUrl: string, direction?: TransitionDirection) => void;
+  triggerTransition: (
+    targetUrl: string,
+    direction?: TransitionDirection
+  ) => void;
   isTransitioning: boolean;
 }
 
@@ -101,11 +99,18 @@ const PixelTransitionContext = createContext<PixelTransitionContextType>({
 });
 
 export const usePixelTransition = () => useContext(PixelTransitionContext);
+export const useVaultTransition = usePixelTransition;
 
-export function PixelTransitionProvider({ children }: { children: React.ReactNode }) {
+export function PixelTransitionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const [phase, setPhase] = useState<"idle" | "revealing">("idle");
-  const [direction, setDirection] = useState<TransitionDirection>("left-to-right");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [direction, setDirection] =
+    useState<TransitionDirection>("left-to-right");
+  const [snapshotHtml, setSnapshotHtml] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
 
   const clearAllTimeouts = () => {
@@ -119,79 +124,78 @@ export function PixelTransitionProvider({ children }: { children: React.ReactNod
 
   const triggerTransition = useCallback(
     (targetUrl: string, explicitDirection?: TransitionDirection) => {
-      if (phase !== "idle") return;
+      if (isTransitioning) return;
 
       clearAllTimeouts();
 
-      // Home -> Arena/Leaderboard travels left to right; return travels right to left
       const resolvedDir: TransitionDirection =
         explicitDirection ||
         (targetUrl.includes("arena") || targetUrl.includes("leaderboard")
           ? "left-to-right"
           : "right-to-left");
 
-      setDirection(resolvedDir);
-      playPixelSweep(resolvedDir);
+      // Snapshot the current page DOM before routing
+      const mainEl = document.querySelector("main");
+      if (mainEl) {
+        const clone = mainEl.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll("audio").forEach((el) => el.remove());
+        clone.style.pointerEvents = "none";
+        setSnapshotHtml(clone.outerHTML);
+      }
 
-      // Navigate immediately to destination
+      setDirection(resolvedDir);
+      setIsTransitioning(true);
+      playVaultTransitionSound(resolvedDir);
+
+      // Navigate immediately: new page mounts underneath the snapshot
       router.push(targetUrl);
 
-      // Single animation pass: light white pixel boxes sweep in the designated direction
-      setPhase("revealing");
-
-      // Maximum delay is (19 * 32) + 56 = 664ms, animation duration 450ms => total ~1114ms
+      // Single continuous pass across the screen (no stops): 1.15s
       const t1 = setTimeout(() => {
-        setPhase("idle");
-      }, 1150);
+        setIsTransitioning(false);
+        setSnapshotHtml(null);
+      }, 1180);
       timeoutRef.current.push(t1);
     },
-    [phase, router]
+    [isTransitioning, router]
   );
 
   return (
     <PixelTransitionContext.Provider
       value={{
         triggerTransition,
-        isTransitioning: phase !== "idle",
+        isTransitioning,
       }}
     >
       {children}
 
-      {/* Full-screen Single-pass Pixel Reveal Transition Overlay */}
-      {phase !== "idle" && (
+      {/* Single-Pass Live Wheel Wipe Transition */}
+      {isTransitioning && snapshotHtml && (
         <div
-          className={`pixel-transition-overlay phase-${phase} dir-${direction}`}
+          className={`wheel-wipe-overlay dir-${direction}`}
           aria-hidden="true"
         >
+          {/* Old Page Snapshot (Clipped away in the wake of the rolling wheel) */}
           <div
-            className="pixel-transition-grid"
-            style={{
-              gridTemplateColumns: `repeat(${COLS}, 1fr)`,
-              gridTemplateRows: `repeat(${ROWS}, 1fr)`,
-            }}
-          >
-            {CELLS.map((cell) => {
-              const isLTR = direction === "left-to-right";
-              const delay = isLTR ? cell.delayLTR : cell.delayRTL;
-              const animClass = isLTR ? "anim-reveal-ltr" : "anim-reveal-rtl";
+            className={`wheel-wipe-snapshot clip-${direction}`}
+            dangerouslySetInnerHTML={{ __html: snapshotHtml }}
+          />
 
-              return (
-                <div
-                  key={`${cell.row}-${cell.col}`}
-                  className={`pixel-cell ${cell.isAccent ? "accent-cell" : ""} ${
-                    cell.isGlitch ? "glitch-cell" : ""
-                  } ${animClass}`}
-                  style={{
-                    animationDelay: `${delay}ms`,
-                  }}
-                >
-                  <span className="pixel-cell-inner" />
-                </div>
-              );
-            })}
+          {/* The Rolling Vault Wheel at the dividing boundary */}
+          <div className={`wheel-wipe-runner roll-${direction}`}>
+            <img
+              src="/homepage/wheel.png"
+              alt="Vault Wheel"
+              className={`wheel-wipe-img spin-${
+                direction === "left-to-right" ? "cw" : "ccw"
+              }`}
+              draggable={false}
+            />
           </div>
         </div>
       )}
     </PixelTransitionContext.Provider>
   );
 }
+
+export const VaultTransitionProvider = PixelTransitionProvider;

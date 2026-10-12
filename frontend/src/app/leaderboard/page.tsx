@@ -380,7 +380,8 @@ export default function LeaderboardPage() {
           {/* Small, perfectly placed Search Box */}
           <div className="leaderboard-top-bar">
             <span className="leaderboard-count-badge font-pixel">
-              // {filteredData.length} {filteredData.length === 1 ? "TEAM" : "TEAMS"}
+              {"// "}
+              {filteredData.length} {filteredData.length === 1 ? "TEAM" : "TEAMS"}
             </span>
 
             <div className="search-team-wrapper">
