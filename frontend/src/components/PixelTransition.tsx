@@ -47,9 +47,9 @@ export const playVaultTransitionSound = (
     filter.frequency.exponentialRampToValueAtTime(140, now + dur);
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.01, now);
-    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
-    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.85);
+    noiseGain.gain.setValueAtTime(0.02, now);
+    noiseGain.gain.linearRampToValueAtTime(0.32, now + 0.2);
+    noiseGain.gain.linearRampToValueAtTime(0.32, now + 0.85);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
     whiteNoise.connect(filter);
@@ -69,7 +69,7 @@ export const playVaultTransitionSound = (
         direction === "left-to-right" ? 180 + i * 14 : 360 - i * 14;
       osc.frequency.setValueAtTime(freq, clickTime);
 
-      gain.gain.setValueAtTime(0.045, clickTime);
+      gain.gain.setValueAtTime(0.02, clickTime);
       gain.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.04);
 
       osc.connect(gain);

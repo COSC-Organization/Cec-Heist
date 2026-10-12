@@ -33,6 +33,18 @@ html, body {
   touch-action: pan-x pan-y;
 }
 
+/* Globally lock all images / PNGs: prevent dragging, ghost dragging, highlighting, or grabbing */
+img, image, picture img {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
 /* CRT Screen Container */
 .crt-screen {
   position: relative;
@@ -943,7 +955,7 @@ html, body {
   font-size: clamp(2.4rem, 5.5vw, 3.8rem);
   letter-spacing: 5px;
   color: #ffffff;
-  text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+  text-shadow: none;
   margin: 0;
   text-align: center;
   line-height: 1.1;
