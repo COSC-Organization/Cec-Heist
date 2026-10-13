@@ -328,12 +328,22 @@ export default function Home() {
       </svg>
 
       {/* Cyber Crime Banner */}
-      <div className="cyber-marquee-container">
-        <div className="cyber-marquee-content">
-          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
-          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
-          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
-          <span>ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW // </span>
+      <div className="cyber-marquee-container" aria-hidden="true">
+        <div className="cyber-marquee-track cyber-marquee-content">
+          <div className="cyber-marquee-group">
+            {[...Array(8)].map((_, i) => (
+              <span key={`ticker-a-${i}`}>
+                ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW //{" "}
+              </span>
+            ))}
+          </div>
+          <div className="cyber-marquee-group" aria-hidden="true">
+            {[...Array(8)].map((_, i) => (
+              <span key={`ticker-b-${i}`}>
+                ACCESS DENIED MR.CREW, ACCESS DENIED MRS.CREW //{" "}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </main>

@@ -486,12 +486,33 @@ img, image, picture img {
   z-index: 20;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  user-select: none;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, transparent, black 3rem, black calc(100% - 3rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 3rem, black calc(100% - 3rem), transparent);
 }
 
+.cyber-marquee-track,
 .cyber-marquee-content {
   display: flex;
   width: max-content;
-  animation: marquee 15s linear infinite;
+  flex-shrink: 0;
+  animation: marquee 25s linear infinite;
+  will-change: transform;
+}
+
+.cyber-marquee-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cyber-marquee-group span,
+.cyber-marquee-content span {
+  display: inline-block;
+  padding-right: 2rem;
   font-family: 'FK Raster Roman', 'VT323', monospace;
   font-size: 1.3rem;
   font-weight: 700;
@@ -499,13 +520,13 @@ img, image, picture img {
   text-transform: uppercase;
 }
 
-.cyber-marquee-content span {
-  padding-right: 2rem;
-}
-
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 .header-pill {
