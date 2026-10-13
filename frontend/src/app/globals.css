@@ -1977,13 +1977,13 @@ button img,
 }
 
 .mouse-trail-img {
-  max-width: clamp(75px, 11vw, 130px);
-  max-height: clamp(75px, 11vw, 130px);
+  max-width: clamp(45px, 6.5vw, 75px);
+  max-height: clamp(45px, 6.5vw, 75px);
   object-fit: contain;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.85)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.8)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
   will-change: transform;
 }
 
