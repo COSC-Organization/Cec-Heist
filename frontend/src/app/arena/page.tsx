@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import ArenaCar from "../../components/ArenaCar";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -408,6 +409,9 @@ export default function ArenaPage() {
 
             {/* Road 3 Moving White Dashes */}
             <path d={ROAD_3_PATH} className="road-white-line road-speed-3" />
+
+            {/* Tactical Mission Vehicle */}
+            <ArenaCar />
           </svg>
 
           {/* All 4 Interactive Facilities Buttons (Clean & Borderless) */}
