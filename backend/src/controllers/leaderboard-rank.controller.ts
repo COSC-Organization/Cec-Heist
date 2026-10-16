@@ -14,14 +14,10 @@ export async function getTeamByRank(c: AppContext) {
 
   const db = createDb(c.env.cec_heist_db)
 
-  const rankedTeams = await db
-    .select()
-    .from(teams)
-    .orderBy(desc(teams.score), asc(teams.id))
-    .limit(1)
-    .offset(rank - 1)
-
-  const team = rankedTeams[0]
+  const team = await db.query.teams.findFirst({
+  orderBy: [desc(teams.score), asc(teams.id)],
+  offset: rank - 1,
+})
 
   if (!team) {
     return c.json(
