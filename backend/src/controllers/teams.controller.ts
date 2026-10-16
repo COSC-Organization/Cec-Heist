@@ -1,4 +1,3 @@
-
 import type { Context } from 'hono'
 import { eq } from 'drizzle-orm'
 import { createDb } from '../db'
@@ -12,16 +11,6 @@ type AppContext = Context<{ Bindings: CloudflareBindings }>
 
 export async function getTeamById(c: AppContext) {
   const id = Number(c.req.param('id'))
-
-  if (!Number.isInteger(id) || id < 1) {
-    return c.json(
-      {
-        success: false,
-        message: 'Team ID must be a positive integer',
-      },
-      400
-    )
-  }
 
   const db = createDb(c.env.cec_heist_db)
 

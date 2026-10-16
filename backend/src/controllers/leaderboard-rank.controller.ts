@@ -1,6 +1,5 @@
-
 import type { Context } from 'hono'
-import { asc, desc, eq } from 'drizzle-orm'
+import { asc, desc } from 'drizzle-orm'
 import { createDb } from '../db'
 import { teams } from '../db/schema/teams'
 
@@ -12,16 +11,6 @@ type AppContext = Context<{ Bindings: CloudflareBindings }>
 
 export async function getTeamByRank(c: AppContext) {
   const rank = Number(c.req.param('rank'))
-
-  if (!Number.isInteger(rank) || rank < 1) {
-    return c.json(
-      {
-        success: false,
-        message: 'Rank must be a positive integer',
-      },
-      400
-    )
-  }
 
   const db = createDb(c.env.cec_heist_db)
 

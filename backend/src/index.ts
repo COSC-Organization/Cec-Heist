@@ -1,4 +1,5 @@
-
+import requestLogger from './middlewares/logger'
+import { errorHandler } from './middlewares/error-handler'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { D1Database } from '@cloudflare/workers-types'
@@ -12,7 +13,8 @@ type CloudflareBindings = {
 }
 
 const app = new Hono<{ Bindings: CloudflareBindings }>()
-
+app.onError(errorHandler)
+app.use('*', requestLogger)
 // Allow the local Next.js frontend to call the backend
 app.use(
   '/api/*',
@@ -40,7 +42,7 @@ app.get('/api/health', (c) => {
 app.route('/api/leaderboard', leaderboardRoutes)
 
 // Get a team by rank
-app.route('/api/leaderboard', leaderboardRankRoutes)
+app.route('/api/leaderboard/rank', leaderboardRankRoutes)
 
 // Get a team by database ID
 app.route('/api/teams', teamsRoutes)
