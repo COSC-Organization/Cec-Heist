@@ -1,20 +1,16 @@
-import requestLogger from './middlewares/logger'
-import { errorHandler } from './middlewares/error-handler'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import type { D1Database } from '@cloudflare/workers-types'
-
+import requestLogger from './middlewares/logger'
+import { errorHandler } from './middlewares/error-handler'
 import leaderboardRoutes from './routes/leaderboard.routes'
-import leaderboardRankRoutes from './routes/leaderboard-rank.routes'
 import teamsRoutes from './routes/teams.routes'
-
-type CloudflareBindings = {
-  cec_heist_db: D1Database
-}
+import type { CloudflareBindings } from './types'
 
 const app = new Hono<{ Bindings: CloudflareBindings }>()
+
 app.onError(errorHandler)
 app.use('*', requestLogger)
+
 // Allow the local Next.js frontend to call the backend
 app.use(
   '/api/*',
@@ -38,13 +34,10 @@ app.get('/api/health', (c) => {
   })
 })
 
-// Get all teams
+// Leaderboard routes (/api/leaderboard and /api/leaderboard/:rank)
 app.route('/api/leaderboard', leaderboardRoutes)
 
-// Get a team by rank
-app.route('/api/leaderboard/rank', leaderboardRankRoutes)
-
-// Get a team by database ID
+// Teams routes (/api/teams/:id)
 app.route('/api/teams', teamsRoutes)
 
 export default app

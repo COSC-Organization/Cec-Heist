@@ -1,14 +1,11 @@
 import { Hono } from 'hono'
-import type { D1Database } from '@cloudflare/workers-types'
-import { getLeaderboard } from '../controllers/leaderboard.controller'
-import { validatePagination } from '../middlewares/validation'
-
-type CloudflareBindings = {
-  cec_heist_db: D1Database
-}
+import { getLeaderboard, getTeamByRank } from '../controllers/leaderboard.controller'
+import { validatePagination, validatePositiveIntParam } from '../middlewares/validation'
+import type { CloudflareBindings } from '../types'
 
 const leaderboardRoutes = new Hono<{ Bindings: CloudflareBindings }>()
 
 leaderboardRoutes.get('/', validatePagination, getLeaderboard)
+leaderboardRoutes.get('/:rank', validatePositiveIntParam('rank'), getTeamByRank)
 
 export default leaderboardRoutes

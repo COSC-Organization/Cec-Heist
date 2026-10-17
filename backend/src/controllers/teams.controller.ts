@@ -1,13 +1,7 @@
-import type { Context } from 'hono'
 import { eq } from 'drizzle-orm'
 import { createDb } from '../db'
 import { teams } from '../db/schema/teams'
-
-type CloudflareBindings = {
-  cec_heist_db: D1Database
-}
-
-type AppContext = Context<{ Bindings: CloudflareBindings }>
+import type { AppContext } from '../types'
 
 export async function getTeamById(c: AppContext) {
   const id = Number(c.req.param('id'))
