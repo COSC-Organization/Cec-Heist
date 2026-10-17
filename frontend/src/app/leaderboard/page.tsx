@@ -116,68 +116,14 @@ interface LeaderboardEntry {
   score: number;
 }
 
-const LEADERBOARD_DATA: LeaderboardEntry[] = [
-  { rank: 1, teamName: "ZERO_DAY_SYNDICATE", score: 15420 },
-  { rank: 2, teamName: "BYTE_BANDITS", score: 13200 },
-  { rank: 3, teamName: "RED_TEAM_SIX", score: 11850 },
-  { rank: 4, teamName: "PHANTOM_NODE", score: 9940 },
-  { rank: 5, teamName: "KRONOS_PROTOCOL", score: 8650 },
-  { rank: 6, teamName: "NEO_MATRIX_CREW", score: 7420 },
-  { rank: 7, teamName: "CYBER_VIPERS", score: 6810 },
-  { rank: 8, teamName: "QUANTUM_HEIST", score: 5920 },
-  { rank: 9, teamName: "DARK_SOLARIS", score: 5180 },
-  { rank: 10, teamName: "VECTOR_CORPS", score: 4620 },
-  { rank: 11, teamName: "SYNAPSE_RAIDERS", score: 4410 },
-  { rank: 12, teamName: "OMEGA_CIPHER", score: 4280 },
-  { rank: 13, teamName: "ROOT_FORCE", score: 4150 },
-  { rank: 14, teamName: "MR_ROBOT_CREW", score: 4020 },
-  { rank: 15, teamName: "BIT_INFILTRATORS", score: 3890 },
-  { rank: 16, teamName: "NULL_POINTERS", score: 3760 },
-  { rank: 17, teamName: "SHADOW_BROKERS", score: 3640 },
-  { rank: 18, teamName: "GLITCH_MOB", score: 3520 },
-  { rank: 19, teamName: "RECON_SQUAD_07", score: 3410 },
-  { rank: 20, teamName: "BINARY_GHOSTS", score: 3300 },
-  { rank: 21, teamName: "KALI_LEGION", score: 3190 },
-  { rank: 22, teamName: "SPECTRE_PROTOCOL", score: 3080 },
-  { rank: 23, teamName: "PACKET_SNIFFERS", score: 2980 },
-  { rank: 24, teamName: "FIREWALL_BREACH", score: 2870 },
-  { rank: 25, teamName: "HEX_OVERLORDS", score: 2770 },
-  { rank: 26, teamName: "DAEMON_HUNTERS", score: 2680 },
-  { rank: 27, teamName: "LOGIC_BOMBERS", score: 2590 },
-  { rank: 28, teamName: "CIPHER_PUNKS", score: 2500 },
-  { rank: 29, teamName: "STEALTH_OPS_X", score: 2410 },
-  { rank: 30, teamName: "CYBER_PHANTOMS", score: 2330 },
-  { rank: 31, teamName: "BUFFER_OVERFLOW", score: 2250 },
-  { rank: 32, teamName: "MALWARE_MASTERS", score: 2170 },
-  { rank: 33, teamName: "ENIGMA_CORPS", score: 2090 },
-  { rank: 34, teamName: "ECHO_CHAMBER", score: 2020 },
-  { rank: 35, teamName: "GRID_RUNNERS", score: 1950 },
-  { rank: 36, teamName: "PAYLOAD_PIRATES", score: 1880 },
-  { rank: 37, teamName: "DECRYPT_KNIGHTS", score: 1810 },
-  { rank: 38, teamName: "VOID_WALKERS", score: 1740 },
-  { rank: 39, teamName: "KERNEL_PANIC", score: 1680 },
-  { rank: 40, teamName: "BLACK_HAT_ELITE", score: 1620 },
-  { rank: 41, teamName: "NEURAL_NETWORKS", score: 1560 },
-  { rank: 42, teamName: "SYNTAX_TERROR", score: 1500 },
-  { rank: 43, teamName: "OVERCLOCK_CREW", score: 1440 },
-  { rank: 44, teamName: "CIRCUIT_BREAKERS", score: 1390 },
-  { rank: 45, teamName: "DIGITAL_VANDALS", score: 1340 },
-  { rank: 46, teamName: "SCRIPT_KIDDIES", score: 1290 },
-  { rank: 47, teamName: "BRUTE_FORCERS", score: 1240 },
-  { rank: 48, teamName: "PROTOCOL_ZERO", score: 1190 },
-  { rank: 49, teamName: "MEMORY_LEAK", score: 1150 },
-  { rank: 50, teamName: "SUBROUTINE_X", score: 1100 },
-  { rank: 51, teamName: "ZERO_COOL", score: 1060 },
-  { rank: 52, teamName: "ACID_BURN", score: 1020 },
-  { rank: 53, teamName: "CRASH_OVERRIDE", score: 980 },
-  { rank: 54, teamName: "THE_PLAGUE", score: 940 },
-  { rank: 55, teamName: "LORD_NIKON", score: 900 },
-  { rank: 56, teamName: "PHREAKERS_UNITED", score: 860 },
-  { rank: 57, teamName: "DATA_DRIFTERS", score: 820 },
-  { rank: 58, teamName: "STACK_TRACERS", score: 790 },
-  { rank: 59, teamName: "BIT_SHIFT_BOYS", score: 750 },
-  { rank: 60, teamName: "HEIST_NEWBIES", score: 710 },
-];
+interface LeaderboardApiResponse {
+  success: boolean;
+  data: {
+    rank: number;
+    team_name: string;
+    score: number;
+  }[];
+}
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -185,15 +131,54 @@ export default function LeaderboardPage() {
   const { triggerTransition } = usePixelTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await fetch("http://localhost:8788/api/leaderboard?page=1&limit=10");
+
+        if (!response.ok) {
+          throw new Error(`Leaderboard request failed (${response.status})`);
+        }
+
+        const result: LeaderboardApiResponse = await response.json();
+
+        if (!result.success) {
+          throw new Error("The leaderboard API returned an error.");
+        }
+
+        setLeaderboardData(
+          result.data.map((team) => ({
+            rank: team.rank,
+            teamName: team.team_name,
+            score: team.score,
+          }))
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the leaderboard."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
 
   const filteredData = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return LEADERBOARD_DATA;
-    return LEADERBOARD_DATA.filter((entry) =>
+    if (!q) return leaderboardData;
+    return leaderboardData.filter((entry) =>
       entry.teamName.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, leaderboardData]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -418,7 +403,15 @@ export default function LeaderboardPage() {
             </div>
 
             <div className="simple-table-body">
-              {filteredData.length === 0 ? (
+              {loading ? (
+                <div className="simple-table-empty font-pixel">
+                  LOADING LEADERBOARD...
+                </div>
+              ) : error ? (
+                <div className="simple-table-empty font-pixel">
+                  {error} Make sure the backend is running.
+                </div>
+              ) : filteredData.length === 0 ? (
                 <div className="simple-table-empty font-pixel">
                   NO TEAMS FOUND MATCHING &ldquo;{searchQuery}&rdquo;
                 </div>
