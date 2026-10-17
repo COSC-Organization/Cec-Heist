@@ -50,6 +50,14 @@ export default function ZoomLock() {
       }
     };
 
+    // Prevent right-click / context menu on images
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "IMG" || target.closest("img"))) {
+        e.preventDefault();
+      }
+    };
+
     // Attach listeners with capture: true to intercept before default browser actions
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
@@ -57,6 +65,7 @@ export default function ZoomLock() {
     document.addEventListener("gesturechange", handleGesture, { capture: true });
     document.addEventListener("gestureend", handleGesture, { capture: true });
     document.addEventListener("dragstart", handleDragStart, { capture: true });
+    document.addEventListener("contextmenu", handleContextMenu, { capture: true });
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
@@ -65,6 +74,7 @@ export default function ZoomLock() {
       document.removeEventListener("gesturechange", handleGesture, { capture: true });
       document.removeEventListener("gestureend", handleGesture, { capture: true });
       document.removeEventListener("dragstart", handleDragStart, { capture: true });
+      document.removeEventListener("contextmenu", handleContextMenu, { capture: true });
     };
   }, []);
 

@@ -355,7 +355,7 @@ export default function LeaderboardPage() {
         <div className="simple-leaderboard-container">
           <div className="leaderboard-title-wrapper">
             <img
-              src="/leaderboard/leaderboard.png"
+              src="/leaderboard/leaderboard.png?v=2"
               alt="LEADERBOARD"
               className="leaderboard-title-img"
               draggable={false}
@@ -365,7 +365,8 @@ export default function LeaderboardPage() {
           {/* Small, perfectly placed Search Box */}
           <div className="leaderboard-top-bar">
             <span className="leaderboard-count-badge font-pixel">
-              // {filteredData.length} {filteredData.length === 1 ? "TEAM" : "TEAMS"}
+              {"// "}
+              {filteredData.length} {filteredData.length === 1 ? "TEAM" : "TEAMS"}
             </span>
 
             <div className="search-team-wrapper">
