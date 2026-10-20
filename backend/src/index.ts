@@ -1,3 +1,4 @@
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import requestLogger from './middlewares/logger'
@@ -5,6 +6,9 @@ import { errorHandler } from './middlewares/error-handler'
 import leaderboardRoutes from './routes/leaderboard.routes'
 import teamsRoutes from './routes/teams.routes'
 import type { CloudflareBindings } from './types'
+import loginRoutes from './routes/auth/login.routes'
+import challengesRoutes from './routes/challenges.routes'
+
 
 const app = new Hono<{ Bindings: CloudflareBindings }>()
 
@@ -16,7 +20,7 @@ app.use(
   '/api/*',
   cors({
     origin: 'http://localhost:3000',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST','PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   })
 )
@@ -39,5 +43,11 @@ app.route('/api/leaderboard', leaderboardRoutes)
 
 // Teams routes (/api/teams/:id)
 app.route('/api/teams', teamsRoutes)
+
+// Auth routes (/api/auth/login)
+app.route('/api/auth/login', loginRoutes)
+
+// Challenges routes (/api/challenges)
+app.route('/api/challenges', challengesRoutes)
 
 export default app
