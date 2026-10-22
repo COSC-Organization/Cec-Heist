@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../components/PixelTransition";
 import MouseTrail from "../components/MouseTrail";
+import { useAuth } from "../context/AuthContext";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -112,6 +113,7 @@ export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -140,7 +142,11 @@ export default function Home() {
 
     if (href === "/arena") {
       setMenuOpen(false);
-      triggerTransition("/arena", "left-to-right");
+      if (isLoggedIn) {
+        triggerTransition("/arena", "left-to-right");
+      } else {
+        openLoginModal("/arena");
+      }
       return;
     }
 
@@ -150,12 +156,28 @@ export default function Home() {
       return;
     }
 
+    if (href === "/profile") {
+      setMenuOpen(false);
+      triggerTransition("/profile", "left-to-right");
+      return;
+    }
+
     router.prefetch(href);
     setMenuOpen(false);
 
     setTimeout(() => {
       router.push(href);
     }, 580);
+  };
+
+  const handleEnterArena = (e: React.MouseEvent) => {
+    e.preventDefault();
+    playCyberClick();
+    if (isLoggedIn) {
+      triggerTransition("/arena", "left-to-right");
+    } else {
+      openLoginModal("/arena");
+    }
   };
 
   useEffect(() => {
@@ -219,7 +241,8 @@ export default function Home() {
               <Link href="/" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/")}><ScrambleText text="01. HOME" /></Link>
               <Link href="/arena" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/arena")}><ScrambleText text="02. ARENA" /></Link>
               <Link href="/leaderboard" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/leaderboard")}><ScrambleText text="03. LEADERBOARD" /></Link>
-              <Link href="/#profile" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/#profile")}><ScrambleText text="04. PROFILE" /></Link>
+              
+              <Link href="/profile" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/profile")}><ScrambleText text="04. PROFILE" /></Link>
             </nav>
             
             <img 
@@ -284,14 +307,10 @@ export default function Home() {
           />
 
           {/* Enter The Arena Gooey Button */}
-          <Link 
-            href="/arena"
+          <button 
+            type="button"
             className="arena-enter-btn gooey-button"
-            onClick={(e) => {
-              e.preventDefault();
-              playCyberClick();
-              triggerTransition("/arena", "left-to-right");
-            }}
+            onClick={handleEnterArena}
             onPointerMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left + 12}px`);
@@ -310,7 +329,7 @@ export default function Home() {
               <ScrambleText text="ENTER THE ARENA" />
               <span className="bracket">]</span>
             </span>
-          </Link>
+          </button>
         </div>
       </div>
 

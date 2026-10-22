@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import { useAuth } from "../../context/AuthContext";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -180,6 +181,8 @@ export default function LeaderboardPage() {
     );
   }, [searchQuery, leaderboardData]);
 
+  const { isLoggedIn, openLoginModal } = useAuth();
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     playCyberClick();
@@ -211,7 +214,17 @@ export default function LeaderboardPage() {
 
     if (href === "/arena") {
       setMenuOpen(false);
-      triggerTransition("/arena", "left-to-right");
+      if (isLoggedIn) {
+        triggerTransition("/arena", "left-to-right");
+      } else {
+        openLoginModal("/arena");
+      }
+      return;
+    }
+
+    if (href === "/profile") {
+      setMenuOpen(false);
+      triggerTransition("/profile", "left-to-right");
       return;
     }
 
@@ -313,10 +326,11 @@ export default function LeaderboardPage() {
               >
                 <ScrambleText text="03. LEADERBOARD" />
               </Link>
+              
               <Link
-                href="/#profile"
+                href="/profile"
                 className="menu-nav-item"
-                onClick={(e) => handleNavClick(e, "/#profile")}
+                onClick={(e) => handleNavClick(e, "/profile")}
               >
                 <ScrambleText text="04. PROFILE" />
               </Link>

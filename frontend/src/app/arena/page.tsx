@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
 import ArenaCar from "../../components/ArenaCar";
+import { useAuth } from "../../context/AuthContext";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -71,6 +72,74 @@ const playCyberClick = () => {
     gain.connect(ctx.destination);
 
     noise.start();
+  } catch {
+    // Audio not supported or blocked
+  }
+};
+
+const playCyberDenied = () => {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") return;
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = "sawtooth";
+    osc2.type = "sawtooth";
+    osc1.frequency.setValueAtTime(110, ctx.currentTime);
+    osc2.frequency.setValueAtTime(116, ctx.currentTime);
+
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start();
+    osc2.start();
+    osc1.stop(ctx.currentTime + 0.25);
+    osc2.stop(ctx.currentTime + 0.25);
+  } catch {
+    // Audio not supported or blocked
+  }
+};
+
+const playPowerUpChime = () => {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") return;
+
+    const notes = [220, 330, 440, 660];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + idx * 0.08);
+      osc.stop(ctx.currentTime + idx * 0.08 + 0.2);
+    });
   } catch {
     // Audio not supported or blocked
   }
@@ -217,9 +286,74 @@ export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, isLoading, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Factory Unlock Progression State (1 to 4)
+  const [unlockedStages, setUnlockedStages] = useState<number>(1);
+  const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
+  const [lockedWarning, setLockedWarning] = useState<string | null>(null);
+  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync unlocked stage from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cec_unlocked_stage");
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (val >= 1 && val <= 4) {
+          setUnlockedStages(val);
+        }
+      }
+    }
+  }, []);
+
+  const triggerUnlock = (targetStage?: number) => {
+    const next = targetStage !== undefined ? targetStage : Math.min(4, unlockedStages + 1);
+    setUnlockedStages(next);
+    setJustUnlockedStage(next);
+    playPowerUpChime();
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cec_unlocked_stage", next.toString());
+    }
+    setTimeout(() => {
+      setJustUnlockedStage(null);
+    }, 2000);
+  };
+
+  const showLockedWarning = (msg: string) => {
+    playCyberDenied();
+    setLockedWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setLockedWarning(null);
+    }, 3200);
+  };
+
+  // External / Backend event listeners for programmatic factory unlocking:
+  // window.dispatchEvent(new CustomEvent("unlock_stage", { detail: { stage: 2 } }))
+  useEffect(() => {
+    const handleUnlockEvent = (e: Event) => {
+      const custom = e as CustomEvent<{ stage?: number; factoryNumber?: number }>;
+      const nextStage = custom.detail?.stage || custom.detail?.factoryNumber;
+      if (nextStage && nextStage >= 1 && nextStage <= 4) {
+        triggerUnlock(nextStage);
+      }
+    };
+    window.addEventListener("unlock_stage", handleUnlockEvent);
+    window.addEventListener("unlock_factory", handleUnlockEvent);
+    return () => {
+      window.removeEventListener("unlock_stage", handleUnlockEvent);
+      window.removeEventListener("unlock_factory", handleUnlockEvent);
+    };
+  }, [unlockedStages]);
 
   const selectedFacility = FACILITIES.find((f) => f.id === activeFacility);
 
@@ -255,6 +389,12 @@ export default function ArenaPage() {
     if (href === "/leaderboard") {
       setMenuOpen(false);
       triggerTransition("/leaderboard", "left-to-right");
+      return;
+    }
+
+    if (href === "/profile") {
+      setMenuOpen(false);
+      triggerTransition("/profile", "left-to-right");
       return;
     }
 
@@ -365,10 +505,11 @@ export default function ArenaPage() {
               >
                 <ScrambleText text="03. LEADERBOARD" />
               </Link>
+              
               <Link
-                href="/#profile"
+                href="/profile"
                 className="menu-nav-item"
-                onClick={(e) => handleNavClick(e, "/#profile")}
+                onClick={(e) => handleNavClick(e, "/profile")}
               >
                 <ScrambleText text="04. PROFILE" />
               </Link>
@@ -384,17 +525,106 @@ export default function ArenaPage() {
         </div>
       </header>
 
+      {/* Access Gatekeeper Overlay if NOT Logged In */}
+      {mounted && !isLoading && !isLoggedIn && (
+        <div className="arena-gatekeeper-overlay">
+          <div className="arena-gatekeeper-card">
+            <div className="corner-bracket top-left" />
+            <div className="corner-bracket top-right" />
+            <div className="corner-bracket bottom-left" />
+            <div className="corner-bracket bottom-right" />
+            
+            <div className="gatekeeper-header">
+              <span className="terminal-dot pulse-amber" />
+              <span>{"// RESTRICTED COMBAT ZONE"}</span>
+            </div>
+            
+            <h2 className="gatekeeper-title">ORGANIZER CLEARANCE REQUIRED</h2>
+            <p className="gatekeeper-desc">
+              All combat sectors, surveillance matrices, and heist operations are strictly restricted to verified teams. Please authenticate using the credentials issued by event organizers.
+            </p>
+
+            <div className="gatekeeper-actions">
+              <button
+                type="button"
+                className="cyber-btn cyber-btn-primary"
+                onClick={() => {
+                  playCyberClick();
+                  openLoginModal("/arena");
+                }}
+              >
+                <span className="bracket">[</span>
+                AUTHENTICATE WITH ORGANIZER CREDENTIALS
+                <span className="bracket">]</span>
+              </button>
+
+              <button
+                type="button"
+                className="cyber-btn cyber-btn-secondary"
+                onClick={() => {
+                  playCyberClick();
+                  triggerTransition("/", "right-to-left");
+                }}
+              >
+                [RETURN TO BASE]
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Arena Map Container & Responsive 1672x941 Stage */}
       <div className="arena-map-container">
         <div className="arena-map-stage">
+          {/* Base Map: All Factory Lights Completely OFF */}
           <img
-            src="/arena/arena-map.jpg"
-            alt="Arena Map"
+            src="/arena/arena-map(light off).png"
+            alt="Arena Map Base (Offline)"
             className="arena-map-stage-img"
             draggable={false}
           />
 
-          {/* Animated Road Lines (Clean White Moving Line Pieces, No Glow) */}
+          {/* Layer 1: Sector 01 (Industrial Refinery) Lights */}
+          <img
+            src="/arena/arena-f1-lit.webp"
+            alt="Sector 01 Lighting"
+            className={`arena-map-light-layer ${unlockedStages >= 1 ? "lit" : ""} ${
+              justUnlockedStage === 1 ? "just-unlocked" : ""
+            }`}
+            draggable={false}
+          />
+
+          {/* Layer 2: Sector 02 (Logistics Depot) Lights */}
+          <img
+            src="/arena/arena-f2-lit.webp"
+            alt="Sector 02 Lighting"
+            className={`arena-map-light-layer ${unlockedStages >= 2 ? "lit" : ""} ${
+              justUnlockedStage === 2 ? "just-unlocked" : ""
+            }`}
+            draggable={false}
+          />
+
+          {/* Layer 3: Sector 03 (Command Complex) Lights */}
+          <img
+            src="/arena/arena-f3-lit.webp"
+            alt="Sector 03 Lighting"
+            className={`arena-map-light-layer ${unlockedStages >= 3 ? "lit" : ""} ${
+              justUnlockedStage === 3 ? "just-unlocked" : ""
+            }`}
+            draggable={false}
+          />
+
+          {/* Layer 4: Sector 04 (Heist Vault & Helipad) Lights */}
+          <img
+            src="/arena/arena-f4-lit.webp"
+            alt="Sector 04 Lighting"
+            className={`arena-map-light-layer ${unlockedStages >= 4 ? "lit" : ""} ${
+              justUnlockedStage === 4 ? "just-unlocked" : ""
+            }`}
+            draggable={false}
+          />
+
+          {/* Animated Road Lines (Active when Sector Unlocked) */}
           <svg
             className="arena-road-svg"
             viewBox="0 0 1672 941"
@@ -402,34 +632,93 @@ export default function ArenaPage() {
             preserveAspectRatio="xMidYMid meet"
           >
             {/* Road 1 Moving White Dashes */}
-            <path d={ROAD_1_PATH} className="road-white-line road-speed-1" />
+            <path
+              d={ROAD_1_PATH}
+              className={`road-white-line road-speed-1 ${
+                unlockedStages >= 1 ? "road-active" : "road-dimmed"
+              }`}
+            />
 
             {/* Road 2 Moving White Dashes */}
-            <path d={ROAD_2_PATH} className="road-white-line road-speed-2" />
+            <path
+              d={ROAD_2_PATH}
+              className={`road-white-line road-speed-2 ${
+                unlockedStages >= 2 ? "road-active" : "road-dimmed"
+              }`}
+            />
 
             {/* Road 3 Moving White Dashes */}
-            <path d={ROAD_3_PATH} className="road-white-line road-speed-3" />
+            <path
+              d={ROAD_3_PATH}
+              className={`road-white-line road-speed-3 ${
+                unlockedStages >= 3 ? "road-active" : "road-dimmed"
+              }`}
+            />
 
             {/* Tactical Mission Vehicle */}
             <ArenaCar />
           </svg>
 
-          {/* All 4 Interactive Facilities Buttons (Clean & Borderless) */}
-          {FACILITIES.map((facility) => (
-            <button
-              key={facility.id}
-              type="button"
-              className={`map-facility-btn ${facility.className}`}
-              onClick={() => {
-                playCyberClick();
-                setActiveFacility(facility.id);
-              }}
-              onMouseEnter={playCyberHover}
-              aria-label={`${facility.sector}: ${facility.name}`}
-            />
-          ))}
+          {/* All 4 Interactive Facilities Buttons with Locked / Unlocked States */}
+          {FACILITIES.map((facility, idx) => {
+            const factoryNum = idx + 1;
+            const isUnlocked = factoryNum <= unlockedStages;
+
+            return (
+              <button
+                key={facility.id}
+                type="button"
+                className={`map-facility-btn ${facility.className} ${
+                  isUnlocked ? "facility-unlocked" : "facility-locked"
+                }`}
+                onClick={() => {
+                  if (isUnlocked) {
+                    playCyberClick();
+                    setActiveFacility(facility.id);
+                  } else {
+                    showLockedWarning(
+                      `ACCESS RESTRICTED // ${facility.sector} IS OFFLINE. COMPLETE SECTOR 0${
+                        factoryNum - 1
+                      } MISSION TO RESTORE POWER.`
+                    );
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (isUnlocked) {
+                    playCyberHover();
+                  }
+                }}
+                aria-label={`${facility.sector}: ${facility.name} (${
+                  isUnlocked ? "ONLINE" : "LOCKED"
+                })`}
+              >
+                {!isUnlocked && (
+                  <div className="facility-locked-badge">
+                    <span>🔒</span>
+                    <span>LOCKED // SEC 0{factoryNum}</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+
+
         </div>
       </div>
+
+      {/* Arena HUD Alert Toast */}
+      {lockedWarning && (
+        <div className="arena-hud-alert">
+          <div
+            className={`hud-alert-inner ${
+              lockedWarning.includes("OVERRIDE") ? "success" : ""
+            }`}
+          >
+            <span>{lockedWarning.includes("OVERRIDE") ? "⚡" : "⚠️"}</span>
+            <span>{lockedWarning}</span>
+          </div>
+        </div>
+      )}
 
       {/* Big Empty Facility Page */}
       {selectedFacility && (
@@ -442,6 +731,16 @@ export default function ArenaPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="scanlines-overlay" />
+            <div className="facility-modal-mission-bar">
+              <div className="mission-bar-intel">
+                <span className="mission-bar-sector">{selectedFacility.sector}</span>
+                <span className="mission-bar-title">{selectedFacility.name}</span>
+                <span className="mission-bar-obj">
+                  OBJ: {selectedFacility.objective}
+                </span>
+              </div>
+            </div>
+
             <button
               type="button"
               className="facility-modal-close-btn"
