@@ -111,27 +111,24 @@ const AuthContext = createContext<AuthContextType>({
 const AUTH_STORAGE_KEY = "cec_heist_team_auth";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<TeamUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
-
-  // Load auth state from storage on mount (avoids hydration mismatch)
-  useEffect(() => {
+  const [user, setUser] = useState<TeamUser | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as TeamUser;
         if (parsed && parsed.teamId) {
-          setUser(parsed);
+          return parsed;
         }
       }
     } catch {
       // Ignore
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+    return null;
+  });
+  const [isLoading] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
 
   // Sync state if storage changes in another tab
   useEffect(() => {

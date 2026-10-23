@@ -117,6 +117,8 @@ const ScrambleText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+type TransitionPhase = "idle" | "sliding-to-auth" | "authenticated" | "sliding-to-login";
+
 interface AdminLoginProps {
   onLoginSuccess?: (email: string) => void;
 }

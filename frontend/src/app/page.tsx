@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../components/PixelTransition";
 import MouseTrail from "../components/MouseTrail";
-import { useAuth } from "../context/AuthContext";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -113,7 +112,6 @@ export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
-  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -142,11 +140,7 @@ export default function Home() {
 
     if (href === "/arena") {
       setMenuOpen(false);
-      if (isLoggedIn) {
-        triggerTransition("/arena", "left-to-right");
-      } else {
-        openLoginModal("/arena");
-      }
+      triggerTransition("/arena", "left-to-right");
       return;
     }
 
@@ -173,11 +167,7 @@ export default function Home() {
   const handleEnterArena = (e: React.MouseEvent) => {
     e.preventDefault();
     playCyberClick();
-    if (isLoggedIn) {
-      triggerTransition("/arena", "left-to-right");
-    } else {
-      openLoginModal("/arena");
-    }
+    triggerTransition("/arena", "left-to-right");
   };
 
   useEffect(() => {

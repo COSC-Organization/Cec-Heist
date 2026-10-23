@@ -9,7 +9,6 @@ import {
   UsersIcon,
   FlagIcon,
   TrophyIcon,
-  GlobeIcon,
   CrosshairIcon,
   LogoutIcon,
   ChevronLeftIcon,
@@ -147,37 +146,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </nav>
       </div>
 
-      {/* External Links Section */}
+      {/* External Link Section */}
       <div className="admin-nav-section external-section">
-        {!isCollapsed && <div className="admin-nav-heading">{"// PUBLIC NODES"}</div>}
+        {!isCollapsed && <div className="admin-nav-heading">{"// PUBLIC ACCESS"}</div>}
         <nav className="admin-nav-menu">
           <Link
             href="/arena"
             className="admin-nav-item external-link"
             target="_blank"
             rel="noopener noreferrer"
-            title="Open Participant Arena"
+            title="Enter The Arena"
           >
             <CrosshairIcon className="nav-icon" />
             {!isCollapsed && (
               <>
-                <span className="nav-label">Arena Portal</span>
-                <ExternalLinkIcon className="ext-icon" />
-              </>
-            )}
-          </Link>
-
-          <Link
-            href="/"
-            className="admin-nav-item external-link"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View Public Homepage"
-          >
-            <GlobeIcon className="nav-icon" />
-            {!isCollapsed && (
-              <>
-                <span className="nav-label">Public Website</span>
+                <span className="nav-label">Enter The Arena</span>
                 <ExternalLinkIcon className="ext-icon" />
               </>
             )}

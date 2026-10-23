@@ -4,7 +4,6 @@ import "./globals.css";
 import ZoomLock from "../components/ZoomLock";
 import { PixelTransitionProvider } from "../components/PixelTransition";
 import { AuthProvider } from "../context/AuthContext";
-import LoginModal from "../components/LoginModal";
 
 const pixelify = Pixelify_Sans({
   variable: "--font-pixelify",
@@ -48,7 +47,6 @@ export default function RootLayout({
         <PixelTransitionProvider>
           <AuthProvider>
             {children}
-            <LoginModal />
           </AuthProvider>
         </PixelTransitionProvider>
       </body>
