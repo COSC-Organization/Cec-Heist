@@ -645,7 +645,7 @@ export default function ArenaPage() {
             />
 
             {/* Tactical Mission Vehicle */}
-            <ArenaCar />
+            <ArenaCar unlockedStages={unlockedStages} />
           </svg>
 
           {/* All 4 Interactive Facilities Buttons with Locked / Unlocked States */}
@@ -691,9 +691,43 @@ export default function ArenaPage() {
         </div>
       </div>
 
-
-
-      {/* Big Empty Facility Page */}
+      {/* Dev / Testing Factory Unlock Control */}
+      <div className="arena-unlock-tester">
+        <div className="unlock-tester-status">
+          <span className="terminal-dot pulse-amber" />
+          <span>STAGE: SEC 0{unlockedStages} / 04</span>
+        </div>
+        <button
+          type="button"
+          className="unlock-tester-btn primary"
+          onClick={() => {
+            playCyberClick();
+            if (unlockedStages < 4) {
+              triggerUnlock(unlockedStages + 1);
+            } else {
+              triggerUnlock(1);
+            }
+          }}
+          title="Unlock the next factory to test vehicle movement"
+        >
+          {unlockedStages < 4
+            ? `⚡ [UNLOCK FACTORY 0${unlockedStages + 1}]`
+            : "↺ [RESET TO FACTORY 01]"}
+        </button>
+        {unlockedStages > 1 && (
+          <button
+            type="button"
+            className="unlock-tester-btn secondary"
+            onClick={() => {
+              playCyberClick();
+              triggerUnlock(1);
+            }}
+            title="Reset progress to Factory 01"
+          >
+            [RESET]
+          </button>
+        )}
+      </div>
       {selectedFacility && (
         <div
           className="facility-modal-backdrop"
