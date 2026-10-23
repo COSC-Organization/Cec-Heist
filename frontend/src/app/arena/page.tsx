@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
 import ArenaCar from "../../components/ArenaCar";
-import { useAuth } from "../../context/AuthContext";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -319,7 +318,6 @@ export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
-  const { isLoggedIn, isLoading, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
@@ -678,54 +676,6 @@ export default function ArenaPage() {
           </div>
         </div>
       </header>
-
-      {/* Access Gatekeeper Overlay if NOT Logged In */}
-      {mounted && !isLoading && !isLoggedIn && (
-        <div className="arena-gatekeeper-overlay">
-          <div className="arena-gatekeeper-card">
-            <div className="corner-bracket top-left" />
-            <div className="corner-bracket top-right" />
-            <div className="corner-bracket bottom-left" />
-            <div className="corner-bracket bottom-right" />
-            
-            <div className="gatekeeper-header">
-              <span className="terminal-dot pulse-amber" />
-              <span>{"// RESTRICTED COMBAT ZONE"}</span>
-            </div>
-            
-            <h2 className="gatekeeper-title">ORGANIZER CLEARANCE REQUIRED</h2>
-            <p className="gatekeeper-desc">
-              All combat sectors, surveillance matrices, and heist operations are strictly restricted to verified teams. Please authenticate using the credentials issued by event organizers.
-            </p>
-
-            <div className="gatekeeper-actions">
-              <button
-                type="button"
-                className="cyber-btn cyber-btn-primary"
-                onClick={() => {
-                  playCyberClick();
-                  openLoginModal("/arena");
-                }}
-              >
-                <span className="bracket">[</span>
-                AUTHENTICATE WITH ORGANIZER CREDENTIALS
-                <span className="bracket">]</span>
-              </button>
-
-              <button
-                type="button"
-                className="cyber-btn cyber-btn-secondary"
-                onClick={() => {
-                  playCyberClick();
-                  triggerTransition("/", "right-to-left");
-                }}
-              >
-                [RETURN TO BASE]
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Arena Map Container & Responsive 1672x941 Stage */}
       <div className="arena-map-container">

@@ -183,11 +183,7 @@ export default function ProfilePage() {
 
     if (href === "/arena") {
       setMenuOpen(false);
-      if (isActuallyLoggedIn) {
-        triggerTransition("/arena", "left-to-right");
-      } else {
-        openLoginModal("/arena");
-      }
+      triggerTransition("/arena", "left-to-right");
       return;
     }
 
