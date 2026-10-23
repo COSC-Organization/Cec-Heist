@@ -39,7 +39,11 @@ interface SmokeParticle {
   age: number;
 }
 
-export default function ArenaCar() {
+interface ArenaCarProps {
+  unlockedStages?: number;
+}
+
+export default function ArenaCar({ unlockedStages = 1 }: ArenaCarProps) {
   const path1Ref = useRef<SVGPathElement>(null);
   const path2Ref = useRef<SVGPathElement>(null);
   const path3Ref = useRef<SVGPathElement>(null);
@@ -48,6 +52,11 @@ export default function ArenaCar() {
   const carWrapperRef = useRef<SVGGElement>(null);
   const idleOscillatorRef = useRef<SVGGElement>(null);
   const smokeGroupRef = useRef<SVGGElement>(null);
+
+  const unlockedStagesRef = useRef(unlockedStages);
+  useEffect(() => {
+    unlockedStagesRef.current = unlockedStages;
+  }, [unlockedStages]);
 
   useEffect(() => {
     const paths = [path1Ref.current, path2Ref.current, path3Ref.current];
@@ -58,18 +67,17 @@ export default function ArenaCar() {
 
     // Speed & duration configuration
     const CRUISING_SPEED = 78; // px/sec on 1672x941 stage
-    const STOP_DURATIONS = [2400, 2400, 2400, 2800]; // ms stopped at each facility
-    const FADE_DURATION = 800; // ms for stealth cloaking loop reset
 
-    // Discrete State Model:
-    let legIndex = 0;
-    let stopIndex = 0;
-    let distance = 0;
+    // Progressive Parking State Model:
+    // Stations: 0 = Factory 1, 1 = Factory 2, 2 = Factory 3, 3 = Factory 4
+    let stationIndex = 0; // Starts at Factory 1
+    let legIndex = 0; // Active road segment (0..2)
+    let distance = 0; // px along active leg (0..legLengths[legIndex])
     let smoothedAngle = 0;
     let angleInitialized = false;
 
-    // Phase: "STOPPED" | "DRIVING" | "FADING_OUT" | "FADING_IN"
-    let phase: "STOPPED" | "DRIVING" | "FADING_OUT" | "FADING_IN" = "STOPPED";
+    // Phase: "STOPPED" (parked at factory) | "DRIVING"
+    let phase: "STOPPED" | "DRIVING" = "STOPPED";
     let phaseTime = 0;
 
     // Smoke Particle System Pool (40 particles)
@@ -101,7 +109,6 @@ export default function ArenaCar() {
     }
 
     let smokeEmitTimer = 0;
-
     let lastTimestamp = performance.now();
     let animFrameId: number;
 
@@ -109,9 +116,26 @@ export default function ArenaCar() {
       const dt = Math.min((now - lastTimestamp) / 1000, 0.1);
       lastTimestamp = now;
 
+      // Current maximum unlocked station index:
+      // unlockedStages: 1 => maxStation 0 (Factory 1 only)
+      // unlockedStages: 2 => maxStation 1 (Factory 2 unlocked)
+      // unlockedStages: 3 => maxStation 2 (Factory 3 unlocked)
+      // unlockedStages: 4 => maxStation 3 (Factory 4 unlocked)
+      const currentUnlockedStages = unlockedStagesRef.current || 1;
+      const maxStation = Math.min(3, Math.max(0, currentUnlockedStages - 1));
+
+      // If user reset stages backward (e.g. from 4 to 1):
+      if (stationIndex > maxStation) {
+        stationIndex = maxStation;
+        legIndex = maxStation;
+        distance = 0;
+        phase = "STOPPED";
+        phaseTime = 0;
+        angleInitialized = false;
+      }
+
       if (phase === "STOPPED") {
         phaseTime += dt * 1000;
-        const targetStopDuration = STOP_DURATIONS[stopIndex] || 2400;
 
         // Subtle realistic vehicle engine idling vibration (0.35px)
         if (idleOscillatorRef.current) {
@@ -119,17 +143,17 @@ export default function ArenaCar() {
           idleOscillatorRef.current.setAttribute("transform", `translate(0, ${idleY})`);
         }
 
-        if (phaseTime >= targetStopDuration) {
-          if (stopIndex === 3) {
-            phase = "FADING_OUT";
-            phaseTime = 0;
-          } else {
-            legIndex = stopIndex;
+        // Check if a newer factory has been unlocked ahead
+        if (stationIndex < maxStation) {
+          // Depart after a brief 400ms engine rev
+          if (phaseTime >= 400) {
+            legIndex = stationIndex;
             distance = 0;
             phase = "DRIVING";
             phaseTime = 0;
           }
         }
+        // Otherwise, stay parked at the latest unlocked factory!
       } else if (phase === "DRIVING") {
         phaseTime += dt * 1000;
         const activeLength = legLengths[legIndex];
@@ -151,7 +175,7 @@ export default function ArenaCar() {
 
         if (distance >= activeLength) {
           distance = activeLength;
-          stopIndex = legIndex + 1;
+          stationIndex = legIndex + 1;
           phase = "STOPPED";
           phaseTime = 0;
         }
@@ -159,49 +183,23 @@ export default function ArenaCar() {
         if (idleOscillatorRef.current) {
           idleOscillatorRef.current.setAttribute("transform", "translate(0, 0)");
         }
-      } else if (phase === "FADING_OUT") {
-        phaseTime += dt * 1000;
-        const opacity = Math.max(0, 1 - phaseTime / FADE_DURATION);
-        if (carWrapperRef.current) {
-          carWrapperRef.current.style.opacity = opacity.toFixed(3);
-        }
-
-        if (phaseTime >= FADE_DURATION) {
-          legIndex = 0;
-          distance = 0;
-          stopIndex = 0;
-          phase = "FADING_IN";
-          phaseTime = 0;
-          angleInitialized = false;
-        }
-      } else if (phase === "FADING_IN") {
-        phaseTime += dt * 1000;
-        const opacity = Math.min(1, phaseTime / FADE_DURATION);
-        if (carWrapperRef.current) {
-          carWrapperRef.current.style.opacity = opacity.toFixed(3);
-        }
-
-        if (phaseTime >= FADE_DURATION) {
-          phase = "STOPPED";
-          phaseTime = 0;
-        }
       }
 
-      // Determine the exact path and distance to sample based on phase
+      // Determine the exact SVG path and distance to sample based on phase & station
       let activePath: SVGPathElement;
       let sampleDist: number;
       let activeLength: number;
 
       if (phase === "STOPPED") {
-        if (stopIndex === 0) {
+        if (stationIndex === 0) {
           activePath = paths[0]!;
           sampleDist = 0;
           activeLength = legLengths[0];
-        } else if (stopIndex === 1) {
+        } else if (stationIndex === 1) {
           activePath = paths[0]!;
           sampleDist = legLengths[0];
           activeLength = legLengths[0];
-        } else if (stopIndex === 2) {
+        } else if (stationIndex === 2) {
           activePath = paths[1]!;
           sampleDist = legLengths[1];
           activeLength = legLengths[1];
@@ -210,14 +208,6 @@ export default function ArenaCar() {
           sampleDist = legLengths[2];
           activeLength = legLengths[2];
         }
-      } else if (phase === "FADING_OUT") {
-        activePath = paths[2]!;
-        sampleDist = legLengths[2];
-        activeLength = legLengths[2];
-      } else if (phase === "FADING_IN") {
-        activePath = paths[0]!;
-        sampleDist = 0;
-        activeLength = legLengths[0];
       } else {
         activePath = paths[legIndex]!;
         sampleDist = Math.max(0, Math.min(distance, legLengths[legIndex]));
@@ -249,7 +239,7 @@ export default function ArenaCar() {
         angleInitialized = true;
       } else {
         const diff = normalizeAngleDiff(targetRotation - smoothedAngle);
-        smoothedAngle += diff * 0.14;
+        smoothedAngle += diff * 0.16;
       }
 
       const renderX = sampleDist >= activeLength ? p2.x : p1.x;
@@ -273,7 +263,7 @@ export default function ArenaCar() {
       const exhaustWorldY =
         renderY + LOCAL_EXHAUST_X * Math.sin(rad) + LOCAL_EXHAUST_Y * Math.cos(rad);
 
-      // Backwards direction vector opposite of car travel
+      // Backwards direction vector opposite of car facing heading
       const backAngleRad = ((roadHeading + 180) * Math.PI) / 180;
       const backDirX = Math.cos(backAngleRad);
       const backDirY = Math.sin(backAngleRad);
@@ -282,10 +272,7 @@ export default function ArenaCar() {
       // Emission interval: active puffs while driving (~55ms), subtle wisps while stopped (~160ms)
       const emitInterval = phase === "DRIVING" ? 0.055 : 0.16;
 
-      if (
-        (phase === "DRIVING" || phase === "STOPPED") &&
-        smokeEmitTimer >= emitInterval
-      ) {
+      if (smokeEmitTimer >= emitInterval) {
         smokeEmitTimer = 0;
 
         // Find an inactive particle in the pool
@@ -325,7 +312,7 @@ export default function ArenaCar() {
 
         if (p.active) {
           p.age += dt;
-          if (p.age >= p.life || phase === "FADING_OUT") {
+          if (p.age >= p.life) {
             p.active = false;
             el.setAttribute("display", "none");
           } else {

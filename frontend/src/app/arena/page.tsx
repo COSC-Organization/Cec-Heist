@@ -234,12 +234,30 @@ const FACILITIES = [
   },
 ];
 
-const PLAY_CARDS = [
+export interface PlayCard {
+  id: string;
+  number: string;
+  title: string;
+  desc: string;
+  points: number;
+  problemDescription: string;
+  hint: string;
+  flag: string;
+  status: "COMPLETED" | "PENDING";
+  pic: string;
+}
+
+const PLAY_CARDS: PlayCard[] = [
   {
     id: "card-1",
     number: "01",
     title: "BREACH PROTOCOL",
     desc: "Bypass perimeter surveillance and decrypt security keys to initiate sector access.",
+    points: 100,
+    problemDescription:
+      "Perimeter sensors detect incoming intrusion attempts on refinery sub-network 192.168.1.0/24. Analyze the telemetry log to identify the anomalous authentication token and recover the primary bypass security key.",
+    hint: "Inspect the HTTP Authorization headers or look for standard base64 encoded strings in the transmission stream.",
+    flag: "FLAG{byp4ss_pr0t0c0l_s3c01}",
     status: "COMPLETED",
     pic: "/arena/pic1.png",
   },
@@ -248,6 +266,11 @@ const PLAY_CARDS = [
     number: "02",
     title: "CIPHER DECRYPT",
     desc: "Extract classified frequency ciphers from localized memory registers.",
+    points: 200,
+    problemDescription:
+      "A memory dump from the depot logistics terminal reveals an encrypted sequence obfuscated with multi-stage XOR and transposition tables. Reverse the key stream to decrypt the master dispatch authorization cipher.",
+    hint: "The XOR key is 4 bytes long. Look for standard ASCII letter frequencies or known plaintext prefixes like 'FLAG'.",
+    flag: "FLAG{c1ph3r_x0r_d3crypt3d}",
     status: "PENDING",
     pic: "/arena/pic2.png",
   },
@@ -256,6 +279,11 @@ const PLAY_CARDS = [
     number: "03",
     title: "NEURAL OVERRIDE",
     desc: "Deploy automated payload routines to disrupt command complex sentry units.",
+    points: 350,
+    problemDescription:
+      "Command complex sentries communicate via a custom binary protocol on port 8443. Craft an exception-triggering payload to force a crash dump and extract the supervisor credentials from memory.",
+    hint: "Check boundary checks on packet lengths. An integer wrap allows bypassing the memory fence.",
+    flag: "FLAG{n3ur4l_0v3rr1d3_byp4ss}",
     status: "PENDING",
     pic: "/arena/pic3.png",
   },
@@ -264,6 +292,11 @@ const PLAY_CARDS = [
     number: "04",
     title: "VAULT EXTRACTION",
     desc: "Infiltrate fortified airborne vault and secure primary heist asset.",
+    points: 500,
+    problemDescription:
+      "The fortified vault biometric lock verifies cryptographic signatures using elliptic curve cryptography. Reconstruct the private signing key from leaked nonce values to disengage the vault seal.",
+    hint: "The random number generator reuses low entropy seeds. Solve the hidden number problem using lattice reduction.",
+    flag: "FLAG{v4ult_m4st3r_3xtr4ct10n}",
     status: "PENDING",
     pic: "/arena/pic4.png",
   },
@@ -288,21 +321,52 @@ export default function ArenaPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
+  const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState<boolean>(false);
+  const [flagInput, setFlagInput] = useState<string>("");
+  const [submitFeedback, setSubmitFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [completedChallenges, setCompletedChallenges] = useState<string[]>(["card-1"]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Factory Unlock Progression State (1 to 4)
-  const [unlockedStages, setUnlockedStages] = useState<number>(() => {
+  const [unlockedStages, setUnlockedStages] = useState<number>(1);
+  const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
+
+  // Sync state from URL and localStorage on mount so refresh keeps current view
+  useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cec_unlocked_stage");
-      if (saved) {
-        const val = parseInt(saved, 10);
-        if (val >= 1 && val <= 4) return val;
+      const savedStage = localStorage.getItem("cec_unlocked_stage");
+      if (savedStage) {
+        const val = parseInt(savedStage, 10);
+        if (val >= 1 && val <= 4) {
+          setUnlockedStages(val);
+        }
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const facParam = urlParams.get("facility") || localStorage.getItem("cec_active_facility");
+      const chalParam = urlParams.get("challenge") || localStorage.getItem("cec_active_challenge");
+
+      if (facParam && FACILITIES.some((f) => f.id === facParam)) {
+        setActiveFacility(facParam);
+        if (chalParam && PLAY_CARDS.some((c) => c.id === chalParam)) {
+          setActiveChallenge(chalParam);
+        }
+      }
+
+      const savedCompleted = localStorage.getItem("cec_completed_challenges");
+      if (savedCompleted) {
+        try {
+          const parsed = JSON.parse(savedCompleted);
+          if (Array.isArray(parsed)) setCompletedChallenges(parsed);
+        } catch {}
       }
     }
-    return 1;
-  });
-  const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
-  const [lockedWarning, setLockedWarning] = useState<string | null>(null);
-  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
+  }, []);
 
   const triggerUnlock = (targetStage?: number) => {
     const next = targetStage !== undefined ? targetStage : Math.min(4, unlockedStages + 1);
@@ -317,17 +381,66 @@ export default function ArenaPage() {
     }, 2000);
   };
 
-  const showLockedWarning = (msg: string) => {
-    playCyberDenied();
-    setLockedWarning(msg);
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    warningTimerRef.current = setTimeout(() => {
-      setLockedWarning(null);
-    }, 3200);
+  const openFacility = (facilityId: string) => {
+    playCyberClick();
+    setActiveFacility(facilityId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cec_active_facility", facilityId);
+      const url = new URL(window.location.href);
+      url.searchParams.set("facility", facilityId);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const closeFacility = () => {
+    playCyberClick();
+    setActiveFacility(null);
+    setActiveChallenge(null);
+    setSubmitFeedback(null);
+    setFlagInput("");
+    setShowHint(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cec_active_facility");
+      localStorage.removeItem("cec_active_challenge");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("facility");
+      url.searchParams.delete("challenge");
+      window.history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+    }
+  };
+
+  const openChallenge = (challengeId: string) => {
+    playCyberClick();
+    setActiveChallenge(challengeId);
+    setShowHint(false);
+    setFlagInput("");
+    setSubmitFeedback(null);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cec_active_challenge", challengeId);
+      const url = new URL(window.location.href);
+      url.searchParams.set("challenge", challengeId);
+      if (activeFacility) {
+        url.searchParams.set("facility", activeFacility);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const closeChallenge = () => {
+    playCyberClick();
+    setActiveChallenge(null);
+    setShowHint(false);
+    setFlagInput("");
+    setSubmitFeedback(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cec_active_challenge");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("challenge");
+      window.history.replaceState(null, "", url.toString());
+    }
   };
 
   // External / Backend event listeners for programmatic factory unlocking:
-  // window.dispatchEvent(new CustomEvent("unlock_stage", { detail: { stage: 2 } }))
   useEffect(() => {
     const handleUnlockEvent = (e: Event) => {
       const custom = e as CustomEvent<{ stage?: number; factoryNumber?: number }>;
@@ -344,7 +457,53 @@ export default function ArenaPage() {
     };
   }, [unlockedStages]);
 
+  // Handle Escape key to dismiss active challenge or facility modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (activeChallenge) {
+          closeChallenge();
+        } else if (activeFacility) {
+          closeFacility();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeChallenge, activeFacility]);
+
   const selectedFacility = FACILITIES.find((f) => f.id === activeFacility);
+  const selectedCard = PLAY_CARDS.find((c) => c.id === activeChallenge);
+
+  const handleFlagSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCard || !flagInput.trim()) return;
+
+    playCyberClick();
+    const cleanInput = flagInput.trim();
+
+    // Check against card flag (ready to be linked to backend/admin API)
+    if (cleanInput.toUpperCase() === selectedCard.flag.toUpperCase()) {
+      playPowerUpChime();
+      setSubmitFeedback({
+        type: "success",
+        text: `ACCESS GRANTED // FLAG ACCEPTED! +${selectedCard.points} PTS AWARDED TO SQUAD.`,
+      });
+      setCompletedChallenges((prev) => {
+        const next = prev.includes(selectedCard.id) ? prev : [...prev, selectedCard.id];
+        if (typeof window !== "undefined") {
+          localStorage.setItem("cec_completed_challenges", JSON.stringify(next));
+        }
+        return next;
+      });
+    } else {
+      playCyberDenied();
+      setSubmitFeedback({
+        type: "error",
+        text: "ACCESS DENIED // INVALID FLAG CIPHER. RE-VERIFY DECRYPTION PAYLOAD.",
+      });
+    }
+  };
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -409,13 +568,17 @@ export default function ArenaPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeFacility) {
-        setActiveFacility(null);
+      if (e.key === "Escape") {
+        if (activeChallenge) {
+          closeChallenge();
+        } else if (activeFacility) {
+          closeFacility();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeFacility]);
+  }, [activeChallenge, activeFacility]);
 
   return (
     <main className="arena-screen">
@@ -597,7 +760,7 @@ export default function ArenaPage() {
             />
 
             {/* Tactical Mission Vehicle */}
-            <ArenaCar />
+            <ArenaCar unlockedStages={unlockedStages} />
           </svg>
 
           {/* All 4 Interactive Facilities Buttons with Locked / Unlocked States */}
@@ -614,14 +777,9 @@ export default function ArenaPage() {
                 }`}
                 onClick={() => {
                   if (isUnlocked) {
-                    playCyberClick();
-                    setActiveFacility(facility.id);
+                    openFacility(facility.id);
                   } else {
-                    showLockedWarning(
-                      `ACCESS RESTRICTED // ${facility.sector} IS OFFLINE. COMPLETE SECTOR 0${
-                        factoryNum - 1
-                      } MISSION TO RESTORE POWER.`
-                    );
+                    playCyberDenied();
                   }
                 }}
                 onMouseEnter={() => {
@@ -647,25 +805,49 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Arena HUD Alert Toast */}
-      {lockedWarning && (
-        <div className="arena-hud-alert">
-          <div
-            className={`hud-alert-inner ${
-              lockedWarning.includes("OVERRIDE") ? "success" : ""
-            }`}
-          >
-            <span>{lockedWarning.includes("OVERRIDE") ? "⚡" : "⚠️"}</span>
-            <span>{lockedWarning}</span>
-          </div>
+      {/* Dev / Testing Factory Unlock Control */}
+      <div className="arena-unlock-tester">
+        <div className="unlock-tester-status">
+          <span className="terminal-dot pulse-amber" />
+          <span>STAGE: SEC 0{unlockedStages} / 04</span>
         </div>
-      )}
+        <button
+          type="button"
+          className="unlock-tester-btn primary"
+          onClick={() => {
+            playCyberClick();
+            if (unlockedStages < 4) {
+              triggerUnlock(unlockedStages + 1);
+            } else {
+              triggerUnlock(1);
+            }
+          }}
+          title="Unlock the next factory to test vehicle movement"
+        >
+          {unlockedStages < 4
+            ? `⚡ [UNLOCK FACTORY 0${unlockedStages + 1}]`
+            : "↺ [RESET TO FACTORY 01]"}
+        </button>
+        {unlockedStages > 1 && (
+          <button
+            type="button"
+            className="unlock-tester-btn secondary"
+            onClick={() => {
+              playCyberClick();
+              triggerUnlock(1);
+            }}
+            title="Reset progress to Factory 01"
+          >
+            [RESET]
+          </button>
+        )}
+      </div>
 
-      {/* Big Empty Facility Page */}
+      {/* Facility Quad Cards Modal */}
       {selectedFacility && (
         <div
           className="facility-modal-backdrop"
-          onClick={() => setActiveFacility(null)}
+          onClick={closeFacility}
         >
           <div
             className="facility-modal-card"
@@ -675,70 +857,194 @@ export default function ArenaPage() {
             <div className="facility-modal-mission-bar">
               <div className="mission-bar-intel">
                 <span className="mission-bar-sector">{selectedFacility.sector}</span>
-                <span className="mission-bar-title">{selectedFacility.name}</span>
-                <span className="mission-bar-obj">
-                  OBJ: {selectedFacility.objective}
-                </span>
+              </div>
+
+              <button
+                type="button"
+                className="facility-modal-close-btn"
+                onClick={closeFacility}
+                aria-label="Close"
+              >
+                [×]
+              </button>
+            </div>
+            <div className="facility-modal-body empty-page">
+              <div className="facility-quad-columns">
+                {PLAY_CARDS.map((card, idx) => {
+                  const isCardCompleted = completedChallenges.includes(card.id);
+
+                  return (
+                    <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
+                      <span className="box-corner-num">{card.number}</span>
+                      <div className="playcard-img-wrap">
+                        <img
+                          src={card.pic}
+                          alt={`Card ${card.number}`}
+                          className="playcard-img"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.opacity = "0";
+                          }}
+                          onLoad={(e) => {
+                            (e.target as HTMLElement).style.opacity = "1";
+                          }}
+                        />
+                      </div>
+                      <div className="playcard-body">
+                        <h4 className="playcard-title">{card.title}</h4>
+                        <p className="playcard-desc">{card.desc}</p>
+                        <div className="playcard-status-row">
+                          <span className="status-label">STATUS</span>
+                          <span
+                            className={`playcard-status-badge ${
+                              isCardCompleted
+                                ? "status-completed"
+                                : "status-pending"
+                            }`}
+                          >
+                            ● {isCardCompleted ? "COMPLETED" : "PENDING"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="playcard-enter-btn"
+                        onClick={() => {
+                          openChallenge(card.id);
+                        }}
+                      >
+                        [ ENTER ]
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Challenge / Question Rectangular Popup Modal */}
+      {selectedFacility && selectedCard && (
+        <div
+          className="challenge-modal-backdrop"
+          onClick={closeChallenge}
+        >
+          <div
+            className="challenge-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="scanlines-overlay" />
+            <div className="corner-bracket top-left" />
+            <div className="corner-bracket top-right" />
+            <div className="corner-bracket bottom-left" />
+            <div className="corner-bracket bottom-right" />
+
+            {/* Header bar */}
+            <div className="challenge-modal-header">
+              <div className="challenge-header-left">
+                <div className="challenge-header-sub">
+                  <span>{selectedFacility.sector}</span>
+                </div>
+                <h2 className="challenge-modal-title">{selectedCard.title}</h2>
+              </div>
+
+              <div className="challenge-header-right">
+                <div className="challenge-points-badge">
+                  <span>{selectedCard.points} PTS</span>
+                </div>
+                <div
+                  className={`challenge-status-pill ${
+                    completedChallenges.includes(selectedCard.id) ? "completed" : "pending"
+                  }`}
+                >
+                  {completedChallenges.includes(selectedCard.id) ? "COMPLETED" : "PENDING"}
+                </div>
+                <button
+                  type="button"
+                  className="challenge-modal-close-btn"
+                  onClick={closeChallenge}
+                  aria-label="Close Question"
+                >
+                  [×]
+                </button>
               </div>
             </div>
 
-            <button
-              type="button"
-              className="facility-modal-close-btn"
-              onClick={() => {
-                playCyberClick();
-                setActiveFacility(null);
-              }}
-              aria-label="Close"
-            >
-              [×]
-            </button>
-            <div className="facility-modal-body empty-page">
-              <div className="facility-quad-columns">
-                {PLAY_CARDS.map((card, idx) => (
-                  <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
-                    <span className="box-corner-num">{card.number}</span>
-                    <div className="playcard-img-wrap">
-                      <img
-                        src={card.pic}
-                        alt={`Card ${card.number}`}
-                        className="playcard-img"
-                        onError={(e) => {
-                          // Hide broken image placeholder until user adds the file
-                          (e.target as HTMLElement).style.opacity = "0";
-                        }}
-                        onLoad={(e) => {
-                          (e.target as HTMLElement).style.opacity = "1";
-                        }}
-                      />
-                    </div>
-                    <div className="playcard-body">
-                      <h4 className="playcard-title">{card.title}</h4>
-                      <p className="playcard-desc">{card.desc}</p>
-                      <div className="playcard-status-row">
-                        <span className="status-label">STATUS</span>
-                        <span
-                          className={`playcard-status-badge ${
-                            card.status === "COMPLETED"
-                              ? "status-completed"
-                              : "status-pending"
-                          }`}
-                        >
-                          ● {card.status}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="playcard-enter-btn"
-                      onClick={() => {
-                        playCyberClick();
-                      }}
-                    >
-                      [ ENTER ]
-                    </button>
+            {/* Modal Body */}
+            <div className="challenge-modal-body">
+              {/* Problem Description */}
+              <div className="challenge-card-section">
+                <div className="section-title-bar">
+                  <span>// PROBLEM DESCRIPTION</span>
+                </div>
+                <div className="section-content-box desc-box">
+                  <p>{selectedCard.problemDescription}</p>
+                </div>
+              </div>
+
+              {/* Tactical Hint (Expandable) */}
+              <div className="challenge-card-section">
+                <div className="section-title-bar">
+                  <span>// TACTICAL HINT</span>
+                  <button
+                    type="button"
+                    className="hint-toggle-btn"
+                    onClick={() => {
+                      playCyberClick();
+                      setShowHint(!showHint);
+                    }}
+                  >
+                    {showHint ? "[ HIDE HINT ]" : "[ 💡 VIEW HINT ]"}
+                  </button>
+                </div>
+                {showHint && (
+                  <div className="section-content-box hint-box">
+                    <p className="hint-text">{selectedCard.hint}</p>
                   </div>
-                ))}
+                )}
+              </div>
+
+              {/* Flag Input & Submission */}
+              <div className="challenge-card-section">
+                <div className="section-title-bar">
+                  <span>// FLAG DECRYPTION SUBMISSION</span>
+                </div>
+                <form onSubmit={handleFlagSubmit} className="challenge-flag-form">
+                  <div className="flag-input-wrapper">
+                    <span className="flag-icon-tag">FLAG //</span>
+                    <input
+                      type="text"
+                      className="flag-text-input"
+                      placeholder="FLAG{enter_decrypted_flag_here}"
+                      value={flagInput}
+                      onChange={(e) => setFlagInput(e.target.value)}
+                      disabled={completedChallenges.includes(selectedCard.id)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className={`flag-submit-btn ${
+                      completedChallenges.includes(selectedCard.id) ? "completed" : ""
+                    }`}
+                    disabled={
+                      completedChallenges.includes(selectedCard.id) ||
+                      !flagInput.trim()
+                    }
+                  >
+                    {completedChallenges.includes(selectedCard.id)
+                      ? "[ ✓ COMPLETED ]"
+                      : "[ SUBMIT FLAG ]"}
+                  </button>
+                </form>
+
+                {submitFeedback && (
+                  <div className={`flag-feedback-alert ${submitFeedback.type}`}>
+                    <span>{submitFeedback.type === "success" ? "✓" : "⚠️"}</span>
+                    <span>{submitFeedback.text}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
