@@ -125,26 +125,13 @@ interface LeaderboardApiResponse {
   }[];
 }
 
-const DEFAULT_LEADERBOARD_ENTRIES: LeaderboardEntry[] = [
-  { rank: 1, teamName: "CIPHER SQUAD", score: 1450 },
-  { rank: 2, teamName: "GHOST_PROTOCOL", score: 1280 },
-  { rank: 3, teamName: "NEURAL_NET", score: 1100 },
-  { rank: 4, teamName: "BIT_BANDITS", score: 950 },
-  { rank: 5, teamName: "VAULT_RUNNERS", score: 820 },
-  { rank: 6, teamName: "ZERO_COOL", score: 710 },
-  { rank: 7, teamName: "SYNTAX_TERROR", score: 630 },
-  { rank: 8, teamName: "OVERCLOCKERS", score: 540 },
-  { rank: 9, teamName: "DATA_PIRATES", score: 420 },
-  { rank: 10, teamName: "RECON_UNIT", score: 350 },
-];
-
 export default function LeaderboardPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD_ENTRIES);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -171,12 +158,12 @@ export default function LeaderboardPage() {
             score: team.score,
           }))
         );
-        setError("");
       } catch (err) {
-        // Fallback to sample tournament entries so the page renders cleanly when backend is offline
-        console.warn("Backend offline or unreachable, using fallback leaderboard data", err);
-        setLeaderboardData(DEFAULT_LEADERBOARD_ENTRIES);
-        setError("");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the leaderboard."
+        );
       } finally {
         setLoading(false);
       }
