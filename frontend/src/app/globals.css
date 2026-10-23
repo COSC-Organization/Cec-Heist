@@ -1285,9 +1285,13 @@ img, image, picture img {
     display: none;
   }
   .simple-leaderboard-container {
-    padding: clamp(5.4rem, 9.5vh, 6.2rem) 1rem 2rem;
+    padding: clamp(5.6rem, 10vh, 6.4rem) 1rem 2rem;
     gap: 1.1rem;
     max-width: 100%;
+  }
+  .leaderboard-title-wrapper {
+    margin-top: 1.8rem;
+    margin-bottom: 0.5rem;
   }
   .leaderboard-title-img {
     max-width: clamp(240px, 78vw, 360px);
@@ -1316,8 +1320,12 @@ img, image, picture img {
 
 @media (max-width: 540px) {
   .simple-leaderboard-container {
-    padding: clamp(5.2rem, 9vh, 5.8rem) 0.85rem 1.8rem;
+    padding: clamp(5.4rem, 9.5vh, 6rem) 0.85rem 1.8rem;
     gap: 0.9rem;
+  }
+  .leaderboard-title-wrapper {
+    margin-top: 2.4rem;
+    margin-bottom: 0.6rem;
   }
   .leaderboard-title-img {
     max-width: clamp(210px, 82vw, 300px);
@@ -1382,8 +1390,12 @@ img, image, picture img {
 
 @media (max-width: 380px) {
   .simple-leaderboard-container {
-    padding: 5rem 0.55rem 1.4rem;
+    padding: 5.2rem 0.55rem 1.4rem;
     gap: 0.75rem;
+  }
+  .leaderboard-title-wrapper {
+    margin-top: 2.2rem;
+    margin-bottom: 0.5rem;
   }
   .leaderboard-title-img {
     max-width: 220px;
