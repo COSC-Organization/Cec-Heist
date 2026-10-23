@@ -7,6 +7,7 @@ import { AdminLogin } from "./components/AdminLogin";
 import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
+import { ChallengeManagement } from "./components/ChallengeManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 
@@ -31,21 +32,35 @@ export default function AdminPage() {
 
   // Core Datasets
   const [teams] = useState<Team[]>(INITIAL_TEAMS);
-  const [challenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
+  const [challenges, setChallenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
+  const [isDeployModalRequested, setIsDeployModalRequested] = useState<boolean>(false);
 
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  // Quick modals placeholder (will connect with Feature 2 & 3)
+  const handleAddChallenge = (newChallenge: Challenge) => {
+    setChallenges((prev) => [newChallenge, ...prev]);
+  };
+
+  const handleUpdateChallenge = (updated: Challenge) => {
+    setChallenges((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
+  const handleDeleteChallenge = (id: string) => {
+    setChallenges((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  // Quick modals
   const handleOpenAddTeam = () => {
     setActiveTab("teams");
   };
 
   const handleOpenAddChallenge = () => {
     setActiveTab("challenges");
+    setIsDeployModalRequested(true);
   };
 
   // Auth Handlers
@@ -116,8 +131,22 @@ export default function AdminPage() {
           />
         )}
 
+        {activeTab === "challenges" && (
+          <ChallengeManagement
+            challenges={challenges}
+            onAddChallenge={handleAddChallenge}
+            onUpdateChallenge={handleUpdateChallenge}
+            onDeleteChallenge={handleDeleteChallenge}
+            onAddLog={handleAddLog}
+            initialDeployModalOpen={isDeployModalRequested}
+            onCloseInitialDeployModal={() => setIsDeployModalRequested(false)}
+          />
+        )}
+
         {/* Feature Placeholders ready to build next */}
-        {activeTab !== "overview" && activeTab !== "event-controls" && (
+        {activeTab !== "overview" &&
+          activeTab !== "event-controls" &&
+          activeTab !== "challenges" && (
           <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
             <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
               MODULE STANDBY: {activeTab.toUpperCase()}

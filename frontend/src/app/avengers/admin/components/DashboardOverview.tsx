@@ -170,10 +170,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <span className="info-val">CEC HEIST 2K26</span>
               </div>
               <div className="info-row">
-                <span className="info-key">PUBLIC PORTAL:</span>
-                <span className="info-val">
-                  {eventConfig.isPublished ? "PUBLISHED / OPEN" : "RESTRICTED / HIDDEN"}
-                </span>
+                <span className="info-key">MAX POOL:</span>
+                <span className="info-val text-green">{eventConfig.totalPoints.toLocaleString()} PTS</span>
               </div>
               <div className="info-row">
                 <span className="info-key">START TIME:</span>

@@ -20,7 +20,7 @@ interface EventControlsProps {
   onAddLog: (log: ActivityLog) => void;
 }
 
-type PendingAction = "start" | "stop" | "end" | "publish-toggle" | null;
+type PendingAction = "start" | "stop" | "end" | null;
 
 export const EventControls: React.FC<EventControlsProps> = ({
   eventConfig,
@@ -113,21 +113,6 @@ export const EventControls: React.FC<EventControlsProps> = ({
         message: "Competition terminated and concluded by Commander.",
       });
       setStatusMessage("COMPETITION OFFICIALLY CONCLUDED [STATUS: ENDED]");
-    } else if (pendingAction === "publish-toggle") {
-      const nextPublished = !eventConfig.isPublished;
-      onUpdateEventConfig({
-        ...eventConfig,
-        isPublished: nextPublished,
-      });
-      onAddLog({
-        id: `LOG-${Date.now()}`,
-        timestamp,
-        type: "event_status",
-        message: `Public event access turned ${nextPublished ? "ONLINE" : "OFFLINE"} by Commander.`,
-      });
-      setStatusMessage(
-        `EVENT PORTAL IS NOW ${nextPublished ? "PUBLICLY VISIBLE" : "RESTRICTED / HIDDEN"}`
-      );
     }
 
     setPendingAction(null);
@@ -163,29 +148,21 @@ export const EventControls: React.FC<EventControlsProps> = ({
             ? "LAUNCH LIVE COMPETITION"
             : pendingAction === "stop"
             ? "HALT / PAUSE COMPETITION"
-            : pendingAction === "end"
-            ? "CONCLUDE & END COMPETITION"
-            : "TOGGLE PUBLIC PORTAL VISIBILITY"
+            : "CONCLUDE & END COMPETITION"
         }
         message={
           pendingAction === "start"
             ? "Are you sure you want to transition the competition status to LIVE? Flag submissions and scoring mechanisms will be immediately simulated as active."
             : pendingAction === "stop"
             ? "Are you sure you want to pause or halt the competition? Submissions will be temporarily placed on standby."
-            : pendingAction === "end"
-            ? "CAUTION: This will officially conclude CEC HEIST 2K26. Scores will be locked and final ranks will be sealed."
-            : `Are you sure you want to ${
-                eventConfig.isPublished ? "UNPUBLISH" : "PUBLISH"
-              } the event portal for participants?`
+            : "CAUTION: This will officially conclude CEC HEIST 2K26. Scores will be locked and final ranks will be sealed."
         }
         confirmLabel={
           pendingAction === "start"
             ? "Confirm Launch [LIVE]"
             : pendingAction === "stop"
             ? "Confirm Halt [STANDBY]"
-            : pendingAction === "end"
-            ? "Confirm Termination [END]"
-            : "Confirm Visibility Change"
+            : "Confirm Termination [END]"
         }
         type={pendingAction === "end" ? "danger" : "warning"}
         onConfirm={handleConfirmAction}
@@ -243,12 +220,6 @@ export const EventControls: React.FC<EventControlsProps> = ({
               <div className="event-meta-item">
                 <span className="meta-label">EVENT TITLE:</span>
                 <span className="meta-value">{eventConfig.name} {eventConfig.edition}</span>
-              </div>
-              <div className="event-meta-item">
-                <span className="meta-label">PUBLIC VISIBILITY:</span>
-                <span className={`meta-value ${eventConfig.isPublished ? "text-cyan" : "text-amber"}`}>
-                  {eventConfig.isPublished ? "PUBLISHED (ONLINE)" : "UNPUBLISHED (OFFLINE)"}
-                </span>
               </div>
               <div className="event-meta-item">
                 <span className="meta-label">ALLOCATED POINTS:</span>
@@ -321,23 +292,6 @@ export const EventControls: React.FC<EventControlsProps> = ({
               >
                 <StopIcon className="btn-icon" />
                 <span>{eventConfig.status === "ENDED" ? "CONCLUDED" : "END EVENT"}</span>
-              </button>
-            </div>
-
-            {/* Publish Toggle Button */}
-            <div className="action-row highlight-row">
-              <div className="action-info">
-                <span className="action-title">PUBLIC VISIBILITY TOGGLE</span>
-                <span className="action-desc">
-                  Toggle whether participants can view the public portal and challenge listings.
-                </span>
-              </div>
-              <button
-                type="button"
-                className={`event-action-btn btn-toggle ${eventConfig.isPublished ? "btn-toggle-on" : "btn-toggle-off"}`}
-                onClick={() => handleTriggerAction("publish-toggle")}
-              >
-                <span>{eventConfig.isPublished ? "[ PORTAL: PUBLISHED ]" : "[ PORTAL: UNPUBLISHED ]"}</span>
               </button>
             </div>
           </div>
