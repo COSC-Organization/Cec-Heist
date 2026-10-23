@@ -299,8 +299,6 @@ export default function ArenaPage() {
   // Factory Unlock Progression State (1 to 4)
   const [unlockedStages, setUnlockedStages] = useState<number>(1);
   const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
-  const [lockedWarning, setLockedWarning] = useState<string | null>(null);
-  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync unlocked stage from localStorage on mount
   useEffect(() => {
@@ -326,15 +324,6 @@ export default function ArenaPage() {
     setTimeout(() => {
       setJustUnlockedStage(null);
     }, 2000);
-  };
-
-  const showLockedWarning = (msg: string) => {
-    playCyberDenied();
-    setLockedWarning(msg);
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    warningTimerRef.current = setTimeout(() => {
-      setLockedWarning(null);
-    }, 3200);
   };
 
   // External / Backend event listeners for programmatic factory unlocking:
@@ -676,11 +665,7 @@ export default function ArenaPage() {
                     playCyberClick();
                     setActiveFacility(facility.id);
                   } else {
-                    showLockedWarning(
-                      `ACCESS RESTRICTED // ${facility.sector} IS OFFLINE. COMPLETE SECTOR 0${
-                        factoryNum - 1
-                      } MISSION TO RESTORE POWER.`
-                    );
+                    playCyberDenied();
                   }
                 }}
                 onMouseEnter={() => {
@@ -706,19 +691,7 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Arena HUD Alert Toast */}
-      {lockedWarning && (
-        <div className="arena-hud-alert">
-          <div
-            className={`hud-alert-inner ${
-              lockedWarning.includes("OVERRIDE") ? "success" : ""
-            }`}
-          >
-            <span>{lockedWarning.includes("OVERRIDE") ? "⚡" : "⚠️"}</span>
-            <span>{lockedWarning}</span>
-          </div>
-        </div>
-      )}
+
 
       {/* Big Empty Facility Page */}
       {selectedFacility && (
@@ -734,24 +707,20 @@ export default function ArenaPage() {
             <div className="facility-modal-mission-bar">
               <div className="mission-bar-intel">
                 <span className="mission-bar-sector">{selectedFacility.sector}</span>
-                <span className="mission-bar-title">{selectedFacility.name}</span>
-                <span className="mission-bar-obj">
-                  OBJ: {selectedFacility.objective}
-                </span>
               </div>
-            </div>
 
-            <button
-              type="button"
-              className="facility-modal-close-btn"
-              onClick={() => {
-                playCyberClick();
-                setActiveFacility(null);
-              }}
-              aria-label="Close"
-            >
-              [×]
-            </button>
+              <button
+                type="button"
+                className="facility-modal-close-btn"
+                onClick={() => {
+                  playCyberClick();
+                  setActiveFacility(null);
+                }}
+                aria-label="Close"
+              >
+                [×]
+              </button>
+            </div>
             <div className="facility-modal-body empty-page">
               <div className="facility-quad-columns">
                 {PLAY_CARDS.map((card, idx) => (

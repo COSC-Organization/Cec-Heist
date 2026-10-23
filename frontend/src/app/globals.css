@@ -1700,7 +1700,8 @@ button img,
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0.85rem 3.5rem 0.85rem 1.4rem;
+  height: 48px;
+  padding: 0 1.4rem;
   background: rgba(10, 12, 16, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   position: absolute;
@@ -1837,19 +1838,19 @@ button img,
 }
 
 .facility-modal-close-btn {
-  position: absolute;
-  top: 1.2rem;
-  right: 1.4rem;
-  z-index: 20;
   background: rgba(12, 17, 30, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.75);
   font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
-  font-size: 0.95rem;
-  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .facility-modal-close-btn:hover {
