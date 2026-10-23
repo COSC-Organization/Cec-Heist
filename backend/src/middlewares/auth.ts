@@ -51,7 +51,8 @@ export const authMiddleware: MiddlewareHandler<AuthEnv> = async (c, next) => {
   if (
     typeof payload.sub !== 'string' ||
     typeof payload.email !== 'string' ||
-    (payload.role !== 'user' && payload.role !== 'admin')
+    (payload.role !== 'user' && payload.role !== 'admin') ||
+    payload.tokenType !== 'access'
   ) {
     return c.json(
       { success: false, message: 'Invalid token payload' },

@@ -15,10 +15,7 @@ loginRoutes.post('/', async (c) => {
   try {
     body = await c.req.json()
   } catch {
-    return c.json(
-      { success: false, message: 'Invalid JSON body' },
-      400
-    )
+    return c.json({ success: false, message: 'Invalid JSON body' }, 400)
   }
 
   if (
@@ -37,9 +34,9 @@ loginRoutes.post('/', async (c) => {
   const password = body.password
 
   if (
-  email.length > 254 ||
-  new TextEncoder().encode(password).length > 72
-) {
+    email.length > 254 ||
+    new TextEncoder().encode(password).length > 72
+  ) {
     return c.json(
       { success: false, message: 'Invalid email or password' },
       400
@@ -47,7 +44,6 @@ loginRoutes.post('/', async (c) => {
   }
 
   if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
-    console.error('JWT_SECRET is missing or too short')
     return c.json(
       { success: false, message: 'Authentication is not configured' },
       500
@@ -56,7 +52,6 @@ loginRoutes.post('/', async (c) => {
 
   try {
     const db = createDb(c.env.cec_heist_db)
-
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     })
@@ -69,13 +64,28 @@ loginRoutes.post('/', async (c) => {
     }
 
     const now = Math.floor(Date.now() / 1000)
-    const token = await sign(
+
+    const accessToken = await sign(
       {
         sub: String(user.id),
         email: user.email,
         role: user.role,
+        tokenType: 'access',
         iat: now,
         exp: now + 60 * 60,
+      },
+      c.env.JWT_SECRET,
+      'HS256'
+    )
+
+    const refreshToken = await sign(
+      {
+        sub: String(user.id),
+        email: user.email,
+        role: user.role,
+        tokenType: 'refresh',
+        iat: now,
+        exp: now + 24 * 60 * 60,
       },
       c.env.JWT_SECRET,
       'HS256'
@@ -84,7 +94,10 @@ loginRoutes.post('/', async (c) => {
     return c.json({
       success: true,
       message: 'Login successful',
-      token,
+      accessToken,
+      refreshToken,
+      expiresIn: 3600,
+      refreshExpiresIn: 86400,
       user: {
         id: user.id,
         email: user.email,
