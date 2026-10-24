@@ -15,6 +15,20 @@
       "when": 1792069966196,
       "tag": "0001_classy_charles_xavier",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792462184961,
+      "tag": "0002_keen_black_tom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792462687955,
+      "tag": "0003_curly_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }

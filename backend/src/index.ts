@@ -1,22 +1,34 @@
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import requestLogger from './middlewares/logger'
 import { errorHandler } from './middlewares/error-handler'
 import leaderboardRoutes from './routes/leaderboard.routes'
 import teamsRoutes from './routes/teams.routes'
+import loginRoutes from './routes/auth/login.routes'
+import challengesRoutes from './routes/challenges.routes'
 import type { CloudflareBindings } from './types'
+import refreshRoutes from './routes/auth/refresh.routes'
 
 const app = new Hono<{ Bindings: CloudflareBindings }>()
 
 app.onError(errorHandler)
 app.use('*', requestLogger)
 
-// Allow the local Next.js frontend to call the backend
+// Allow requests only from the configured frontend origin.
 app.use(
   '/api/*',
   cors({
-    origin: 'http://localhost:3000',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: (origin, c) => {
+      const allowedOrigin = c.env.FRONTEND_ORIGIN
+
+      if (origin && origin === allowedOrigin) {
+        return origin
+      }
+
+      return ''
+    },
+    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   })
 )
@@ -34,10 +46,19 @@ app.get('/api/health', (c) => {
   })
 })
 
-// Leaderboard routes (/api/leaderboard and /api/leaderboard/:rank)
+// Leaderboard routes
 app.route('/api/leaderboard', leaderboardRoutes)
 
-// Teams routes (/api/teams/:id)
+// Team routes
 app.route('/api/teams', teamsRoutes)
+
+// Authentication routes
+app.route('/api/auth/login', loginRoutes)
+
+// Challenge routes
+app.route('/api/challenges', challengesRoutes)
+
+// Refresh token routes
+app.route('/api/auth/refresh', refreshRoutes)
 
 export default app
