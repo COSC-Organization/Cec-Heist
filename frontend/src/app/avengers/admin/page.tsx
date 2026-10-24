@@ -6,6 +6,7 @@ import "./admin.css";
 import { AdminLogin } from "./components/AdminLogin";
 import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
+import { EventControls } from "./components/EventControls";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 
@@ -32,7 +33,11 @@ export default function AdminPage() {
   const [teams] = useState<Team[]>(INITIAL_TEAMS);
   const [challenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
-  const [eventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
+  const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
+
+  const handleAddLog = (newLog: ActivityLog) => {
+    setLogs((prev) => [newLog, ...prev]);
+  };
 
   // Quick modals placeholder (will connect with Feature 2 & 3)
   const handleOpenAddTeam = () => {
@@ -103,8 +108,16 @@ export default function AdminPage() {
           />
         )}
 
+        {activeTab === "event-controls" && (
+          <EventControls
+            eventConfig={eventConfig}
+            onUpdateEventConfig={setEventConfig}
+            onAddLog={handleAddLog}
+          />
+        )}
+
         {/* Feature Placeholders ready to build next */}
-        {activeTab !== "overview" && (
+        {activeTab !== "overview" && activeTab !== "event-controls" && (
           <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
             <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
               MODULE STANDBY: {activeTab.toUpperCase()}
