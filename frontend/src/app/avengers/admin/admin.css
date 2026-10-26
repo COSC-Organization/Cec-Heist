@@ -2328,6 +2328,89 @@
   margin: 0;
 }
 
+/* Sector Badges */
+.sector-badge {
+  display: inline-block;
+  padding: 0.22rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: var(--font-space-mono), monospace;
+  white-space: nowrap;
+}
+
+.sector-badge-factory {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.sector-badge-logistics {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #22d3ee;
+}
+
+.sector-badge-command {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
+.sector-badge-vault {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+}
+
+.sector-badge-unassigned {
+  background: rgba(113, 113, 122, 0.15);
+  border: 1px solid rgba(113, 113, 122, 0.4);
+  color: #a1a1aa;
+}
+
+/* Flag & Cipher Indicators */
+.chal-flag-tag {
+  display: inline-block;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.65rem;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.flag-reveal-toggle-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fbbf24;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.flag-reveal-toggle-btn:hover {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: #fbbf24;
+}
+
+.dossier-flag-box {
+  background: #000000;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.9rem;
+  color: #34d399;
+  letter-spacing: 1px;
+}
+
 .deploy-modal-card {
   max-width: 640px !important;
 }

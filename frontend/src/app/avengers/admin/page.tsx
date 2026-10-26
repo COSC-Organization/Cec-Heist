@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./admin.css";
 
 import { AdminLogin } from "./components/AdminLogin";
@@ -32,7 +32,32 @@ export default function AdminPage() {
 
   // Core Datasets
   const [teams] = useState<Team[]>(INITIAL_TEAMS);
-  const [challenges, setChallenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
+  const [challenges, setChallenges] = useState<Challenge[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cec_heist_challenges");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch {}
+      }
+    }
+    return INITIAL_CHALLENGES;
+  });
+
+  // Sync challenges with localStorage and cross-tab updates
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "cec_heist_challenges" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setChallenges(parsed);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
   const [isDeployModalRequested, setIsDeployModalRequested] = useState<boolean>(false);
@@ -42,15 +67,33 @@ export default function AdminPage() {
   };
 
   const handleAddChallenge = (newChallenge: Challenge) => {
-    setChallenges((prev) => [newChallenge, ...prev]);
+    setChallenges((prev) => {
+      const next = [newChallenge, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleUpdateChallenge = (updated: Challenge) => {
-    setChallenges((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    setChallenges((prev) => {
+      const next = prev.map((c) => (c.id === updated.id ? updated : c));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleDeleteChallenge = (id: string) => {
-    setChallenges((prev) => prev.filter((c) => c.id !== id));
+    setChallenges((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   // Quick modals

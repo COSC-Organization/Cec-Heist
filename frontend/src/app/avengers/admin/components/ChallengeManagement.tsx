@@ -37,6 +37,13 @@ const CATEGORIES = [
 
 const DIFFICULTIES = ["All", "Easy", "Medium", "Hard", "Insane"] as const;
 const STATUSES = ["All", "Published", "Draft", "Archived"] as const;
+const SECTORS_LIST = [
+  { id: "All", label: "All Sectors" },
+  { id: "factory", label: "Sector 01: Refinery" },
+  { id: "logistics", label: "Sector 02: Logistics" },
+  { id: "command", label: "Sector 03: Command" },
+  { id: "vault", label: "Sector 04: Vault" },
+] as const;
 
 export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   challenges,
@@ -52,6 +59,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
+  const [selectedSector, setSelectedSector] = useState<string>("All");
 
   // Modals State
   const [internalDeployOpen, setInternalDeployOpen] = useState(false);
@@ -60,14 +68,18 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
   const [viewingChallenge, setViewingChallenge] = useState<Challenge | null>(null);
   const [deletingChallenge, setDeletingChallenge] = useState<Challenge | null>(null);
+  const [showDossierFlag, setShowDossierFlag] = useState<boolean>(false);
 
   // Deploy / Edit Form State
   const [formId, setFormId] = useState("");
   const [formTitle, setFormTitle] = useState("");
   const [formCategory, setFormCategory] = useState<Challenge["category"]>("Web Exploitation");
   const [formDifficulty, setFormDifficulty] = useState<Challenge["difficulty"]>("Medium");
+  const [formFacilityId, setFormFacilityId] = useState<"factory" | "logistics" | "command" | "vault">("factory");
   const [formPoints, setFormPoints] = useState<number>(100);
   const [formDescription, setFormDescription] = useState("");
+  const [formFlag, setFormFlag] = useState("");
+  const [formHint, setFormHint] = useState("");
   const [formStatus, setFormStatus] = useState<Challenge["status"]>("Published");
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -97,9 +109,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       const matchStatus =
         selectedStatus === "All" || c.status === selectedStatus;
 
-      return matchSearch && matchCategory && matchDifficulty && matchStatus;
+      const matchSector = selectedSector === "All" || c.facilityId === selectedSector;
+      return matchSearch && matchCategory && matchDifficulty && matchStatus && matchSector;
     });
-  }, [challenges, searchQuery, selectedCategory, selectedDifficulty, selectedStatus]);
+  }, [challenges, searchQuery, selectedCategory, selectedDifficulty, selectedStatus, selectedSector]);
 
   // Calculated Stats
   const totalPoints = challenges.reduce((sum, c) => sum + c.points, 0);
@@ -123,8 +136,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     setFormTitle("");
     setFormCategory("Web Exploitation");
     setFormDifficulty("Medium");
+    setFormFacilityId("factory");
     setFormPoints(100);
     setFormDescription("");
+    setFormFlag("");
+    setFormHint("");
     setFormStatus("Published");
     setFormError(null);
     setEditingChallenge(null);
@@ -138,8 +154,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     setFormTitle(c.title);
     setFormCategory(c.category);
     setFormDifficulty(c.difficulty);
+    setFormFacilityId(c.facilityId || "factory");
     setFormPoints(c.points);
     setFormDescription(c.description);
+    setFormFlag(c.flag || "");
+    setFormHint(c.hint || "");
     setFormStatus(c.status);
     setFormError(null);
     setInternalDeployOpen(true);
@@ -184,6 +203,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
         difficulty: formDifficulty,
         points: Number(formPoints),
         description: formDescription.trim(),
+        facilityId: formFacilityId,
+        flag: formFlag.trim() || undefined,
+        hint: formHint.trim() || undefined,
+        pic: formFacilityId === "factory" ? "/arena/pic1.png" : formFacilityId === "logistics" ? "/arena/pic2.png" : formFacilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png",
         status: formStatus,
       };
       onUpdateChallenge(updated);
@@ -203,6 +226,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
         difficulty: formDifficulty,
         points: Number(formPoints),
         description: formDescription.trim(),
+        facilityId: formFacilityId,
+        flag: formFlag.trim() || undefined,
+        hint: formHint.trim() || undefined,
+        pic: formFacilityId === "factory" ? "/arena/pic1.png" : formFacilityId === "logistics" ? "/arena/pic2.png" : formFacilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png",
         status: formStatus,
         solves: 0,
       };
@@ -267,6 +294,21 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     }
   };
 
+  const getSectorBadge = (facilityId?: string) => {
+    switch (facilityId) {
+      case "factory":
+        return { label: "SEC 01 // REFINERY", className: "sector-badge-factory" };
+      case "logistics":
+        return { label: "SEC 02 // LOGISTICS", className: "sector-badge-logistics" };
+      case "command":
+        return { label: "SEC 03 // COMMAND", className: "sector-badge-command" };
+      case "vault":
+        return { label: "SEC 04 // VAULT", className: "sector-badge-vault" };
+      default:
+        return { label: "SEC 01 // REFINERY", className: "sector-badge-factory" };
+    }
+  };
+
   return (
     <div className="challenge-management-container">
       {/* Delete Confirmation Modal */}
@@ -305,6 +347,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                   <h2 className="dossier-challenge-title">{viewingChallenge.title}</h2>
                   <div className="dossier-badges-row">
                     <span className="cat-badge">{viewingChallenge.category}</span>
+                    {(() => {
+                      const s = getSectorBadge(viewingChallenge.facilityId);
+                      return <span className={`sector-badge ${s.className}`}>{s.label}</span>;
+                    })()}
                     <span className={`diff-badge ${getDifficultyBadgeClass(viewingChallenge.difficulty)}`}>
                       {viewingChallenge.difficulty}
                     </span>
@@ -329,9 +375,33 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                   <span className="block-label">MISSION BRIEF &amp; OBJECTIVES:</span>
                   <p className="dossier-desc-text">{viewingChallenge.description}</p>
                 </div>
+
+                {viewingChallenge.hint && (
+                  <div className="dossier-desc-block">
+                    <span className="block-label">// TACTICAL HINT:</span>
+                    <p className="dossier-desc-text text-yellow">{viewingChallenge.hint}</p>
+                  </div>
+                )}
+
+                {viewingChallenge.flag && (
+                  <div className="dossier-desc-block">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                      <span className="block-label">// DECRYPTION CIPHER / FLAG:</span>
+                      <button
+                        type="button"
+                        className="flag-reveal-toggle-btn"
+                        onClick={() => setShowDossierFlag(!showDossierFlag)}
+                      >
+                        {showDossierFlag ? "[ HIDE CIPHER ]" : "[ 👁️ REVEAL CIPHER ]"}
+                      </button>
+                    </div>
+                    <div className="dossier-flag-box">
+                      <code>{showDossierFlag ? viewingChallenge.flag : "••••••••••••••••••••••••••••••••"}</code>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
             <div className="admin-modal-footer">
               <button
                 type="button"
@@ -417,7 +487,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                   </div>
                 </div>
 
-                <div className="form-grid-3" style={{ marginTop: "1rem" }}>
+                <div className="form-grid-2" style={{ marginTop: "1rem" }}>
                   <div className="form-field-group">
                     <label htmlFor="field-chal-category" className="field-label">
                       SECTOR / CATEGORY
@@ -452,6 +522,26 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                     </select>
                   </div>
 
+                </div>
+
+                <div className="form-grid-2" style={{ marginTop: "1rem" }}>
+                  <div className="form-field-group">
+                    <label htmlFor="field-chal-sector" className="field-label">
+                      TARGET HEIST FACILITY (SECTOR)
+                    </label>
+                    <select
+                      id="field-chal-sector"
+                      value={formFacilityId}
+                      onChange={(e) => setFormFacilityId(e.target.value as "factory" | "logistics" | "command" | "vault")}
+                      className="admin-select-field"
+                    >
+                      <option value="factory">Sector 01: Industrial Refinery (Power Grid)</option>
+                      <option value="logistics">Sector 02: Logistics Depot (Convoy)</option>
+                      <option value="command">Sector 03: Command Complex (Surveillance)</option>
+                      <option value="vault">Sector 04: Central Heist Vault (Helipad)</option>
+                    </select>
+                  </div>
+
                   <div className="form-field-group">
                     <label htmlFor="field-chal-pts" className="field-label">
                       POINTS ALLOCATION
@@ -468,6 +558,39 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                     />
                   </div>
                 </div>
+
+                <div className="form-grid-2" style={{ marginTop: "1rem" }}>
+                  <div className="form-field-group">
+                    <label htmlFor="field-chal-flag" className="field-label">
+                      CAPTURE THE FLAG (SECRET CIPHER KEY)
+                    </label>
+                    <input
+                      id="field-chal-flag"
+                      type="text"
+                      value={formFlag}
+                      onChange={(e) => setFormFlag(e.target.value)}
+                      placeholder="e.g. FLAG{secret_exploit_cipher}"
+                      className="admin-input-field"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  <div className="form-field-group">
+                    <label htmlFor="field-chal-hint" className="field-label">
+                      TACTICAL HINT (OPTIONAL)
+                    </label>
+                    <input
+                      id="field-chal-hint"
+                      type="text"
+                      value={formHint}
+                      onChange={(e) => setFormHint(e.target.value)}
+                      placeholder="e.g. Inspect HTTP Authorization headers..."
+                      className="admin-input-field"
+                    />
+                  </div>
+                </div>
+
 
                 <div className="form-field-group" style={{ marginTop: "1rem" }}>
                   <label htmlFor="field-chal-desc" className="field-label">
@@ -641,6 +764,21 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             </select>
           </div>
 
+          {/* Sector Filter */}
+          <div className="filter-select-wrap">
+            <select
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+              className="admin-filter-select"
+            >
+              {SECTORS_LIST.map((sec) => (
+                <option key={sec.id} value={sec.id}>
+                  {sec.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Status Filter */}
           <div className="filter-select-wrap">
             <select
@@ -664,6 +802,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               <tr>
                 <th style={{ width: "95px" }}>ID</th>
                 <th>CHALLENGE TITLE</th>
+                <th>SECTOR</th>
                 <th>CATEGORY</th>
                 <th>DIFFICULTY</th>
                 <th style={{ textAlign: "right" }}>POINTS</th>
@@ -675,7 +814,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             <tbody>
               {filteredChallenges.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="table-empty-cell">
+                  <td colSpan={9} className="table-empty-cell">
                     {"// NO MATCHING CHALLENGES FOUND IN MATRIX"}
                   </td>
                 </tr>
@@ -686,6 +825,17 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                     <td className="chal-title-cell">
                       <div className="chal-title-text">{c.title}</div>
                       <div className="chal-desc-preview">{c.description}</div>
+                      {c.flag && (
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <span className="chal-flag-tag">FLAG // CONFIGURED</span>
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {(() => {
+                        const s = getSectorBadge(c.facilityId);
+                        return <span className={`sector-badge ${s.className}`}>{s.label}</span>;
+                      })()}
                     </td>
                     <td>
                       <span className="cat-badge">{c.category}</span>

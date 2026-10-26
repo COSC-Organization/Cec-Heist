@@ -36,6 +36,10 @@ export interface Challenge {
   description: string;
   status: "Draft" | "Published" | "Archived";
   solves: number;
+  facilityId?: "factory" | "logistics" | "command" | "vault";
+  flag?: string;
+  hint?: string;
+  pic?: string;
 }
 
 export interface ActivityLog {
@@ -199,6 +203,10 @@ export const INITIAL_TEAMS: Team[] = [
 export const INITIAL_CHALLENGES: Challenge[] = [
   {
     id: "WEB-01",
+    facilityId: "factory",
+    flag: "FLAG{byp4ss_pr0t0c0l_s3c01}",
+    hint: "Inspect the authentication parameter for boolean SQLi payload.",
+    pic: "/arena/pic1.png",
     title: "SQL Injection Gateway",
     category: "Web Exploitation",
     difficulty: "Easy",
@@ -209,6 +217,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "WEB-02",
+    facilityId: "logistics",
+    flag: "FLAG{jwt_k3y_f0rg3ry_d3p0t}",
+    hint: "Change algorithm header from RS256 to HS256 using public key as HMAC secret.",
+    pic: "/arena/pic2.png",
     title: "JWT Key Forgery",
     category: "Web Exploitation",
     difficulty: "Medium",
@@ -219,6 +231,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "WEB-03",
+    facilityId: "command",
+    flag: "FLAG{n3ur4l_0v3rr1d3_byp4ss}",
+    hint: "Point the PDF generator to 169.254.169.254/latest/meta-data/.",
+    pic: "/arena/pic3.png",
     title: "SSRF Internal Metadata",
     category: "Web Exploitation",
     difficulty: "Hard",
@@ -229,6 +245,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "WEB-04",
+    facilityId: "vault",
+    flag: "FLAG{pr0t0_p0llut10n_rce_v4ult}",
+    hint: "Inject __proto__.shell into recursive merge function to execute child_process.",
+    pic: "/arena/pic4.png",
     title: "Prototype Pollution RCE",
     category: "Web Exploitation",
     difficulty: "Insane",
@@ -239,6 +259,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "CRYPTO-01",
+    facilityId: "factory",
+    flag: "FLAG{subst1tut10n_c1ph3r_byp4ss}",
+    hint: "Calculate frequency distribution of single-letter tokens.",
+    pic: "/arena/pic1.png",
     title: "Classic Substitution Matrix",
     category: "Cryptography",
     difficulty: "Easy",
@@ -249,6 +273,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "CRYPTO-02",
+    facilityId: "logistics",
+    flag: "FLAG{c1ph3r_x0r_d3crypt3d}",
+    hint: "Send tailored ciphertext blocks and watch server responses to discover plaintext bytes.",
+    pic: "/arena/pic2.png",
     title: "Padding Oracle Attack",
     category: "Cryptography",
     difficulty: "Medium",
@@ -259,6 +287,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "CRYPTO-03",
+    facilityId: "vault",
+    flag: "FLAG{v4ult_m4st3r_3xtr4ct10n}",
+    hint: "Use Extended Euclidean Algorithm to find coefficients a and b such that a*e1 + b*e2 = 1.",
+    pic: "/arena/pic4.png",
     title: "Broken RSA Common Modulus",
     category: "Cryptography",
     difficulty: "Hard",
@@ -269,6 +301,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "FOR-01",
+    facilityId: "factory",
+    flag: "FLAG{v0l4t1l1ty_pr0c_tr33}",
+    hint: "Check pslist and pstree for orphaned explorer child processes.",
+    pic: "/arena/pic1.png",
     title: "Memory Dump Volatility",
     category: "Forensics",
     difficulty: "Medium",
@@ -279,6 +315,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "FOR-02",
+    facilityId: "command",
+    flag: "FLAG{pcap_dns_tunn3l_3xf1l}",
+    hint: "Filter for DNS queries with high entropy subdomains and concatenate base64 segments.",
+    pic: "/arena/pic3.png",
     title: "PCAP Packet Infiltration",
     category: "Forensics",
     difficulty: "Hard",
@@ -289,6 +329,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "REV-01",
+    facilityId: "logistics",
+    flag: "FLAG{k3yg3n_b1n4ry_cr4ck3d}",
+    hint: "Use Ghidra or IDA to locate the validation routine at offset 0x401200.",
+    pic: "/arena/pic2.png",
     title: "Obfuscated Binary Keygen",
     category: "Reverse Engineering",
     difficulty: "Medium",
@@ -299,6 +343,10 @@ export const INITIAL_CHALLENGES: Challenge[] = [
   },
   {
     id: "REV-02",
+    facilityId: "command",
+    flag: "FLAG{b00tl04d3r_arm_byp4ss}",
+    hint: "Patch the conditional branch instruction checking CRC checksum.",
+    pic: "/arena/pic3.png",
     title: "Firmware Bootloader Bypass",
     category: "Reverse Engineering",
     difficulty: "Insane",
