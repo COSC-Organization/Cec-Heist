@@ -2421,3 +2421,570 @@
 }
 
 
+
+/* ==========================================================================
+   BUG BOUNTY CHALLENGES SYSTEM (MATCHING USER'S PROVIDED SCREENSHOTS)
+   ========================================================================== */
+
+.bug-bounty-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+  padding-bottom: 3rem;
+}
+
+/* Common Card Style */
+.bounty-form-card,
+.bounty-table-card {
+  background: #0f1013;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Card Header */
+.bounty-form-header,
+.bounty-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.bounty-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bounty-title-red {
+  color: #e11d48;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+}
+
+.bounty-table-title {
+  color: #ffffff;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.bounty-subtitle-gray {
+  color: #71717a;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+}
+
+.bounty-count-pill {
+  background: rgba(225, 29, 72, 0.15);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  color: #fb7185;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+
+/* Form Layout */
+.bounty-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bounty-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.bounty-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.bounty-label {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #a1a1aa;
+}
+
+.bounty-input,
+.bounty-select,
+.bounty-textarea {
+  background: #090a0c;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.92rem;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bounty-input:focus,
+.bounty-select:focus,
+.bounty-textarea:focus {
+  border-color: #e11d48;
+  outline: none;
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.25);
+  background: #0d0e12;
+}
+
+.bounty-textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.bounty-flag-input {
+  color: #34d399;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.bounty-helper-text {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.72rem;
+  color: #52525b;
+}
+
+/* Big Red Action Button matching Image 1 */
+.bounty-action-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.bounty-submit-red-btn {
+  background: linear-gradient(180deg, #e11d48 0%, #be123c 100%);
+  color: #ffffff;
+  border: 1px solid #e11d48;
+  border-radius: 6px;
+  padding: 0.95rem 1.75rem;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 18px rgba(225, 29, 72, 0.4);
+}
+
+.bounty-submit-red-btn:hover {
+  background: #f43f5e;
+  border-color: #f43f5e;
+  box-shadow: 0 6px 24px rgba(244, 63, 94, 0.6);
+  transform: translateY(-1px);
+}
+
+.bounty-cancel-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  padding: 0.95rem 1.75rem;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.bounty-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Alerts */
+.bounty-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 6px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.bounty-alert-success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.bounty-alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+/* Nav Strip on Table Header */
+.bounty-nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.bounty-nav-item {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.75rem;
+  color: #71717a;
+  letter-spacing: 1px;
+}
+
+.bounty-nav-item.active {
+  color: #e11d48;
+  font-weight: 700;
+}
+
+/* Filter and Search Bar */
+.bounty-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.bounty-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: #090a0c;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  flex: 1;
+  min-width: 240px;
+}
+
+.bounty-search-input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.bounty-search-input:focus {
+  outline: none;
+}
+
+.bounty-clear-search {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  display: flex;
+  padding: 0;
+}
+
+.bounty-filters-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bounty-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #090a0c;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 0.25rem 0.65rem;
+}
+
+.bounty-filter-select {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.bounty-filter-select:focus {
+  outline: none;
+  color: #ffffff;
+}
+
+/* Table Styling matching Image 2 */
+.bounty-table-wrapper {
+  overflow-x: auto;
+  border-radius: 6px;
+}
+
+.bounty-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-space-mono), monospace;
+}
+
+.bounty-data-table thead th {
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: #71717a;
+  border-bottom: 1px solid #27272a;
+  text-align: left;
+}
+
+.bounty-table-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.bounty-table-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bounty-data-table tbody td {
+  padding: 1rem 1rem;
+  vertical-align: middle;
+}
+
+.bounty-cell-level {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff;
+}
+
+.bounty-cell-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bounty-title-text {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.bounty-desc-text {
+  color: #71717a;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.bounty-flag-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+
+.bounty-flag-preview .flag-tag-label {
+  font-size: 0.65rem;
+  color: #34d399;
+  font-weight: 700;
+}
+
+.bounty-flag-preview code {
+  font-size: 0.72rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+/* Category Badges (Image 2) */
+.bounty-cat-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.bounty-badge-web {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.bounty-badge-forensics {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.bounty-badge-crypto {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.bounty-badge-reverse {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.bounty-badge-misc {
+  background: rgba(113, 113, 122, 0.18);
+  color: #a1a1aa;
+  border: 1px solid rgba(113, 113, 122, 0.4);
+}
+
+.bounty-cell-points {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Clue Link */
+.bounty-clue-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.bounty-clue-link:hover {
+  text-decoration: underline;
+  color: #7dd3fc;
+}
+
+.bounty-clue-none {
+  color: #52525b;
+  font-size: 0.85rem;
+}
+
+/* Active Pill (YES / HALTED) */
+.bounty-active-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-space-mono), monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.bounty-active-pill.active-yes {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.bounty-active-pill.active-yes:hover {
+  background: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.bounty-active-pill.active-halted {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.bounty-active-pill.active-halted:hover {
+  background: rgba(239, 68, 68, 0.28);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+/* Actions Group matching Image 2 */
+.bounty-actions-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.bounty-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
+  border-radius: 4px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bounty-action-btn.edit-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.bounty-action-btn.halt-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.bounty-action-btn.activate-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #34d399;
+  color: #34d399;
+}
+
+/* Delete Button matching Image 2 */
+.bounty-delete-btn {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  padding: 0.35rem 0.85rem;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.bounty-delete-btn:hover {
+  background: #ef4444;
+  box-shadow: 0 2px 14px rgba(239, 68, 68, 0.5);
+  transform: translateY(-1px);
+}
+
+.bounty-empty-cell {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: #52525b;
+  font-style: italic;
+  font-size: 0.9rem;
+}

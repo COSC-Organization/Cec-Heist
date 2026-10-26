@@ -34,7 +34,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const totalOperatives = teams.reduce((acc, team) => acc + team.members.length, 0);
   const totalPoints = challenges.reduce((acc, c) => acc + c.points, 0);
-  const totalSolves = challenges.reduce((acc, c) => acc + c.solves, 0);
+  const totalSolves = challenges.reduce((acc, c) => acc + (c.solves || 0), 0);
   const topTeams = [...teams].sort((a, b) => b.score - a.score).slice(0, 5);
 
   return (

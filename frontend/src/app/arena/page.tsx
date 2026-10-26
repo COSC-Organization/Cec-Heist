@@ -342,7 +342,7 @@ export default function ArenaPage() {
           try {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              const published = parsed.filter((c: any) => c.status === "Published");
+              const published = parsed.filter((c: any) => c.isActive !== false && c.status !== "Draft");
               if (published.length > 0) {
                 const mapped: PlayCard[] = published.map((c: any, idx: number) => ({
                   id: c.id,
