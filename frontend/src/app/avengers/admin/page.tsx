@@ -26,58 +26,54 @@ import {
 } from "./data/mockData";
 
 export default function AdminPage() {
-  // Session State (checks stored admin session on mount)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const user = getStoredUser();
-    const token = getAccessToken();
-    return Boolean(token && user && user.role === "admin");
-  });
-
-  const [adminEmail, setAdminEmail] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    const user = getStoredUser();
-    return user && user.role === "admin" ? user.email : "";
-  });
+  // Mount state to prevent SSR / Client hydration mismatch
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminEmail, setAdminEmail] = useState<string>("");
 
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
-  // Core Datasets
-  const [teams, setTeams] = useState<Team[]>(() => {
+  // Core Datasets start with initial constants on SSR & initial client render
+  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
+  const [challenges, setChallenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
+
+  // Initialize client-side state after mounting
+  useEffect(() => {
+    setIsMounted(true);
+
+    const user = getStoredUser();
+    const token = getAccessToken();
+    const hasAdminSession = Boolean(token && user && user.role === "admin");
+    setIsAuthenticated(hasAdminSession);
+    if (hasAdminSession && user?.email) {
+      setAdminEmail(user.email);
+    }
+
     if (typeof window !== "undefined") {
       const savedTeams = localStorage.getItem("cec_heist_teams_v1");
       if (savedTeams) {
         try {
           const parsed = JSON.parse(savedTeams);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTeams(parsed);
+          }
         } catch {}
       }
-    }
-    return INITIAL_TEAMS;
-  });
 
-  const [challenges, setChallenges] = useState<Challenge[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
+      const savedV3 =
+        localStorage.getItem("cec_heist_challenges_v3") ||
+        localStorage.getItem("cec_heist_challenges");
       if (savedV3) {
         try {
           const parsed = JSON.parse(savedV3);
-          if (Array.isArray(parsed)) return parsed;
-        } catch {}
-      }
-      const oldSaved = localStorage.getItem("cec_heist_challenges");
-      if (oldSaved) {
-        try {
-          const parsed = JSON.parse(oldSaved);
-          if (Array.isArray(parsed) && parsed.some((c: any) => c.id?.startsWith("CHAL-0"))) {
-            localStorage.removeItem("cec_heist_challenges");
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setChallenges(parsed);
           }
         } catch {}
       }
     }
-    return INITIAL_CHALLENGES;
-  });
+  }, []);
 
   // Sync challenges and teams with localStorage and cross-tab updates
   useEffect(() => {
@@ -103,7 +99,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    let isMounted = true;
+    let isSubscribed = true;
 
     async function loadAdminData() {
       try {
@@ -112,7 +108,7 @@ export default function AdminPage() {
           api.challenges.getAll(),
         ]);
 
-        if (!isMounted) return;
+        if (!isSubscribed) return;
 
         if (
           teamsRes.status === "fulfilled" &&
@@ -170,7 +166,7 @@ export default function AdminPage() {
     loadAdminData();
 
     return () => {
-      isMounted = false;
+      isSubscribed = false;
     };
   }, [isAuthenticated]);
 
@@ -328,6 +324,20 @@ export default function AdminPage() {
     setIsLogoutModalOpen(false);
     setActiveTab("overview");
   };
+
+  // Prevent SSR/Client hydration mismatch
+  if (!isMounted) {
+    return (
+      <main
+        className="crt-screen admin-screen-container"
+        style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
+      >
+        <div className="font-pixel" style={{ color: "#00f0ff", fontSize: "1.1rem" }}>
+          {"// INITIALIZING COMMAND MATRIX..."}
+        </div>
+      </main>
+    );
+  }
 
   // 1. If not authenticated, render the Admin Login Terminal
   if (!isAuthenticated) {
