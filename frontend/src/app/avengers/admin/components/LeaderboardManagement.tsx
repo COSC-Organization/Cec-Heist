@@ -8,11 +8,8 @@ import {
   SearchIcon,
   FilterIcon,
   DownloadIcon,
-  RefreshIcon,
   PlusIcon,
-  CheckIcon,
   CloseIcon,
-  AlertTriangleIcon,
   ActivityIcon,
   ShieldIcon,
   UsersIcon,
@@ -270,7 +267,7 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="admin-overview-container" style={{ gap: "2rem" }}>
       {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-[#00f3ff] text-[#040406] font-mono text-xs font-bold px-4 py-3 border border-white shadow-[0_0_20px_rgba(0,243,255,0.4)] flex items-center gap-2 animate-bounce">
@@ -282,62 +279,50 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
       {/* ============================================================== */}
       {/* SECTION 1: HEADER & SCOREKEEPER CONTROLS                       */}
       {/* ============================================================== */}
-      <div className="cec-panel-card cyber-corners">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="cec-panel-card cyber-corners" style={{ padding: "1.75rem 2rem" }}>
+        <div className="overview-header-row" style={{ alignItems: "center" }}>
           <div>
-            <div className="flex items-center gap-3">
-              <TrophyIcon className="w-6 h-6 text-yellow" />
-              <h2 className="cec-main-heading">
-                TOURNAMENT SCOREKEEPER // STANDINGS
-              </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <TrophyIcon className="w-6 h-6 text-yellow" />
+                <h2 className="overview-title" style={{ margin: 0, fontSize: "1.65rem" }}>
+                  TOURNAMENT SCOREKEEPER // STANDINGS
+                </h2>
+              </div>
               {isFrozen ? (
                 <span
-                  className="cec-category-badge cat-misc"
-                  style={{
-                    backgroundColor: "rgba(255, 184, 0, 0.15)",
-                    borderColor: "#ffb800",
-                    color: "#ffb800",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.35rem",
-                  }}
+                  className="status-pill status-pill-waiting font-pixel"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.35rem 0.85rem" }}
                 >
                   <span className="w-2 h-2 rounded-full bg-yellow animate-ping inline-block" />
                   ❄️ LEADERBOARD FROZEN
                 </span>
               ) : (
                 <span
-                  className="cec-category-badge cat-web"
-                  style={{
-                    backgroundColor: "rgba(0, 243, 255, 0.12)",
-                    borderColor: "#00f3ff",
-                    color: "#00f3ff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.35rem",
-                  }}
+                  className="status-pill status-pill-live font-pixel"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.35rem 0.85rem" }}
                 >
-                  <span className="w-2 h-2 rounded-full bg-cyan inline-block animate-pulse" />
-                  LIVE STREAMING
+                  <span className="w-2 h-2 rounded-full bg-green inline-block animate-pulse" />
+                  ● LIVE STREAMING
                 </span>
               )}
             </div>
-            <p className="cec-sub-heading mt-1">
-              {"// Real-time score validation, manual point adjustments, and freeze controls."}
+            <p className="overview-subtitle">
+              {"// Real-time score validation, audit point adjustments, and freeze controls."}
             </p>
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="overview-quick-actions" style={{ gap: "0.85rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
             {/* Freeze Toggle Button */}
             <button
               type="button"
               onClick={handleRequestToggleFreeze}
-              className={`cec-action-btn ${isFrozen ? "btn-edit" : ""}`}
+              className="overview-action-btn"
               style={{
-                borderColor: isFrozen ? "#ffb800" : "rgba(255, 184, 0, 0.5)",
-                color: isFrozen ? "#ffb800" : "#ffffff",
-                background: isFrozen ? "rgba(255, 184, 0, 0.15)" : "transparent",
+                borderColor: isFrozen ? "#f59e0b" : "rgba(245, 158, 11, 0.4)",
+                color: isFrozen ? "#f59e0b" : "#ffffff",
+                background: isFrozen ? "rgba(245, 158, 11, 0.15)" : "transparent",
               }}
               title={
                 isFrozen
@@ -359,14 +344,15 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
                 setIsAdjustmentModalOpen(true);
               }}
               disabled={teams.length === 0}
-              className="cec-action-btn btn-edit"
+              className="overview-action-btn"
               style={{
+                borderColor: "rgba(0, 243, 255, 0.5)",
+                color: "#00f3ff",
                 opacity: teams.length === 0 ? 0.4 : 1,
                 cursor: teams.length === 0 ? "not-allowed" : "pointer",
               }}
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>[ +/- ADJUST SCORE ]</span>
+              <span>[ ⚡ ADJUST SCORE ]</span>
             </button>
 
             {/* Export CSV */}
@@ -374,104 +360,154 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
               type="button"
               onClick={handleExportCSV}
               disabled={teams.length === 0}
-              className="cec-action-btn"
+              className="overview-action-btn"
               style={{
                 opacity: teams.length === 0 ? 0.4 : 1,
                 cursor: teams.length === 0 ? "not-allowed" : "pointer",
               }}
             >
-              <DownloadIcon className="w-4 h-4 text-cyan" />
+              <DownloadIcon className="w-4 h-4 text-white" />
               <span>[ EXPORT STANDINGS ]</span>
             </button>
-          </div>
-        </div>
-
-        {/* Telemetry Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-          {/* Card 1: Apex Squad */}
-          <div className="metric-box">
-            <span className="metric-box-label">// 1ST PLACE (APEX)</span>
-            <div className="metric-box-value text-yellow truncate" style={{ fontSize: "1.2rem" }}>
-              {apexSquad ? apexSquad.name : "—"}
-            </div>
-            <div className="metric-box-sub">
-              {apexSquad ? `${apexSquad.score.toLocaleString()} PTS (${apexSquad.solvedCount} solves)` : "No scores recorded"}
-            </div>
-          </div>
-
-          {/* Card 2: Registered Squads */}
-          <div className="metric-box">
-            <span className="metric-box-label">// SQUADS ENLISTED</span>
-            <div className="metric-box-value text-white">{teams.length}</div>
-            <div className="metric-box-sub">
-              <span className="text-green">{activeTeamsCount} Scored</span>
-              {" • "}
-              <span className="text-muted">{teams.length - activeTeamsCount} at 0 PTS</span>
-            </div>
-          </div>
-
-          {/* Card 3: Total Arena Points */}
-          <div className="metric-box">
-            <span className="metric-box-label">// ARENA POINTS SCORED</span>
-            <div className="metric-box-value text-cyan">
-              {totalScoredPoints.toLocaleString()}
-            </div>
-            <div className="metric-box-sub">
-              {activeTeamsCount > 0
-                ? `Avg: ${Math.round(totalScoredPoints / activeTeamsCount).toLocaleString()} PTS/active`
-                : "Awaiting first blood"}
-            </div>
-          </div>
-
-          {/* Card 4: Challenges Available */}
-          <div className="metric-box">
-            <span className="metric-box-label">// TOURNAMENT ARENA</span>
-            <div className="metric-box-value text-white">
-              {challenges.length}
-            </div>
-            <div className="metric-box-sub">
-              Max solves by team: <strong className="text-green">{maxSolves}</strong>
-            </div>
           </div>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 2: TOP 3 PODIUM CARDS (IF SQUADS >= 1)                 */}
+      {/* SECTION 2: 4 DISTINCT TELEMETRY CARDS (SPACED & STRUCTURED)    */}
+      {/* ============================================================== */}
+      <div className="overview-stats-grid">
+        {/* Card 1: Apex Squad */}
+        <div
+          className="overview-stat-card cyber-corners"
+          style={{
+            borderColor: apexSquad ? "rgba(255, 215, 0, 0.5)" : "rgba(255, 255, 255, 0.22)",
+            boxShadow: apexSquad ? "0 0 20px rgba(255, 215, 0, 0.1)" : undefined,
+          }}
+        >
+          <div className="stat-card-top">
+            <span className="stat-label">// 1ST PLACE (APEX)</span>
+            <TrophyIcon className="stat-icon text-yellow" />
+          </div>
+          <div
+            className="stat-value text-yellow"
+            style={{ fontSize: "1.45rem", minHeight: "2.2rem", display: "flex", alignItems: "center" }}
+          >
+            {apexSquad ? apexSquad.name : "—"}
+          </div>
+          <div className="stat-meta">
+            {apexSquad ? (
+              <>
+                <span className="meta-badge-green">● {apexSquad.score.toLocaleString()} PTS</span>
+                <span className="meta-sub">{apexSquad.solvedCount} Solves</span>
+              </>
+            ) : (
+              <span className="meta-sub">No scores recorded yet</span>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Registered Squads */}
+        <div className="overview-stat-card cyber-corners">
+          <div className="stat-card-top">
+            <span className="stat-label">// SQUADS ENLISTED</span>
+            <UsersIcon className="stat-icon text-cyan" />
+          </div>
+          <div className="stat-value text-white">{teams.length}</div>
+          <div className="stat-meta">
+            <span className="meta-badge-green">● {activeTeamsCount} Scored</span>
+            <span className="meta-sub">{teams.length - activeTeamsCount} at 0 PTS</span>
+          </div>
+        </div>
+
+        {/* Card 3: Total Arena Points */}
+        <div className="overview-stat-card cyber-corners">
+          <div className="stat-card-top">
+            <span className="stat-label">// ARENA POINTS SCORED</span>
+            <ActivityIcon className="stat-icon text-cyan" />
+          </div>
+          <div className="stat-value text-cyan">
+            {totalScoredPoints.toLocaleString()} PTS
+          </div>
+          <div className="stat-meta">
+            <span className="meta-badge-neutral">
+              {activeTeamsCount > 0
+                ? `Avg: ${Math.round(totalScoredPoints / activeTeamsCount).toLocaleString()} PTS/active`
+                : "Awaiting first solve"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Challenges Available */}
+        <div className="overview-stat-card cyber-corners">
+          <div className="stat-card-top">
+            <span className="stat-label">// TOURNAMENT ARENA</span>
+            <ShieldIcon className="stat-icon text-white" />
+          </div>
+          <div className="stat-value text-white">
+            {challenges.length} Vectors
+          </div>
+          <div className="stat-meta">
+            <span className="meta-badge-neutral">Max Solves: {maxSolves}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* SECTION 3: TOP 3 PODIUM CARDS (IF SQUADS >= 3 SCORED)          */}
       {/* ============================================================== */}
       {rankedTeams.length >= 3 && rankedTeams[0].score > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "1.25rem",
+          }}
+        >
           {/* Rank #2 (Silver) */}
           <div
-            className="cec-panel-card cyber-corners flex flex-col justify-between"
+            className="cec-panel-card cyber-corners"
             style={{
               borderColor: "rgba(192, 192, 192, 0.4)",
               background: "linear-gradient(180deg, rgba(192,192,192,0.06) 0%, rgba(10,12,18,0.9) 100%)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              padding: "1.5rem",
             }}
           >
             <div>
-              <div className="flex items-center justify-between">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span
                   className="font-pixel text-xs px-2.5 py-1 rounded"
-                  style={{ background: "#c0c0c0", color: "#040406" }}
+                  style={{ background: "#c0c0c0", color: "#040406", fontWeight: "bold" }}
                 >
                   🥈 2ND PLACE
                 </span>
                 <span className="font-mono text-xs text-muted">RANK #2</span>
               </div>
-              <h3 className="font-pixel text-lg text-white mt-3 truncate">
+              <h3 className="font-pixel text-lg text-white mt-3 truncate" style={{ margin: "0.75rem 0 0.25rem 0" }}>
                 {rankedTeams[1].name}
               </h3>
-              <p className="font-mono text-xs text-muted">
+              <p className="font-mono text-xs text-muted" style={{ margin: 0 }}>
                 {rankedTeams[1].organization || "Independent Operatives"}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <div
+              style={{
+                marginTop: "1rem",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
               <div>
                 <span className="chal-points-badge" style={{ color: "#c0c0c0", borderColor: "#c0c0c0" }}>
                   <strong>{rankedTeams[1].score.toLocaleString()}</strong> PTS
                 </span>
-                <span className="font-mono text-xs text-muted ml-2">
+                <span className="font-mono text-xs text-muted" style={{ marginLeft: "0.5rem" }}>
                   {rankedTeams[1].solvedCount} Solves
                 </span>
               </div>
@@ -488,16 +524,19 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
 
           {/* Rank #1 (Gold Apex) */}
           <div
-            className="cec-panel-card cyber-corners flex flex-col justify-between"
+            className="cec-panel-card cyber-corners"
             style={{
               borderColor: "rgba(255, 215, 0, 0.6)",
               background: "linear-gradient(180deg, rgba(255,215,0,0.1) 0%, rgba(10,12,18,0.95) 100%)",
-              transform: "translateY(-4px)",
               boxShadow: "0 0 25px rgba(255, 215, 0, 0.15)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              padding: "1.5rem",
             }}
           >
             <div>
-              <div className="flex items-center justify-between">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span
                   className="font-pixel text-xs px-3 py-1 rounded"
                   style={{ background: "#ffd700", color: "#040406", fontWeight: "bold" }}
@@ -506,19 +545,28 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
                 </span>
                 <span className="font-mono text-xs text-yellow font-bold">RANK #1</span>
               </div>
-              <h3 className="font-pixel text-xl text-yellow mt-3 truncate">
+              <h3 className="font-pixel text-xl text-yellow truncate" style={{ margin: "0.75rem 0 0.25rem 0" }}>
                 {rankedTeams[0].name}
               </h3>
-              <p className="font-mono text-xs text-muted">
+              <p className="font-mono text-xs text-muted" style={{ margin: 0 }}>
                 {rankedTeams[0].organization || "Independent Operatives"}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <div
+              style={{
+                marginTop: "1rem",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
               <div>
                 <span className="chal-points-badge" style={{ color: "#ffd700", borderColor: "#ffd700" }}>
                   <strong>{rankedTeams[0].score.toLocaleString()}</strong> PTS
                 </span>
-                <span className="font-mono text-xs text-yellow ml-2 font-bold">
+                <span className="font-mono text-xs text-yellow font-bold" style={{ marginLeft: "0.5rem" }}>
                   {rankedTeams[0].solvedCount} Solves
                 </span>
               </div>
@@ -540,35 +588,48 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
 
           {/* Rank #3 (Bronze) */}
           <div
-            className="cec-panel-card cyber-corners flex flex-col justify-between"
+            className="cec-panel-card cyber-corners"
             style={{
               borderColor: "rgba(205, 127, 50, 0.4)",
               background: "linear-gradient(180deg, rgba(205,127,50,0.06) 0%, rgba(10,12,18,0.9) 100%)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              padding: "1.5rem",
             }}
           >
             <div>
-              <div className="flex items-center justify-between">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span
                   className="font-pixel text-xs px-2.5 py-1 rounded"
-                  style={{ background: "#cd7f32", color: "#ffffff" }}
+                  style={{ background: "#cd7f32", color: "#ffffff", fontWeight: "bold" }}
                 >
                   🥉 3RD PLACE
                 </span>
                 <span className="font-mono text-xs text-muted">RANK #3</span>
               </div>
-              <h3 className="font-pixel text-lg text-white mt-3 truncate">
+              <h3 className="font-pixel text-lg text-white mt-3 truncate" style={{ margin: "0.75rem 0 0.25rem 0" }}>
                 {rankedTeams[2].name}
               </h3>
-              <p className="font-mono text-xs text-muted">
+              <p className="font-mono text-xs text-muted" style={{ margin: 0 }}>
                 {rankedTeams[2].organization || "Independent Operatives"}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <div
+              style={{
+                marginTop: "1rem",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
               <div>
                 <span className="chal-points-badge" style={{ color: "#cd7f32", borderColor: "#cd7f32" }}>
                   <strong>{rankedTeams[2].score.toLocaleString()}</strong> PTS
                 </span>
-                <span className="font-mono text-xs text-muted ml-2">
+                <span className="font-mono text-xs text-muted" style={{ marginLeft: "0.5rem" }}>
                   {rankedTeams[2].solvedCount} Solves
                 </span>
               </div>
@@ -586,9 +647,9 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* SECTION 3: FULL STANDINGS TABLE                                */}
+      {/* SECTION 4: FULL STANDINGS TABLE                                */}
       {/* ============================================================== */}
-      <div className="cec-panel-card cyber-corners">
+      <div className="cec-panel-card cyber-corners" style={{ padding: "1.75rem 2rem" }}>
         <div className="cec-panel-header">
           <div className="panel-title-wrap">
             <TrophyIcon className="w-5 h-5 text-yellow" />
@@ -660,7 +721,7 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
         </div>
 
         {/* Standings Table Content */}
-        <div className="cec-table-responsive">
+        <div className="cec-table-responsive" style={{ marginTop: "1rem" }}>
           <table className="cec-data-table">
             <thead>
               <tr>
@@ -677,17 +738,17 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
               {teams.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="cec-empty-state-cell">
-                    <div className="empty-state-terminal">
+                    <div className="empty-state-terminal" style={{ padding: "2.5rem 1.5rem" }}>
                       <div className="terminal-prompt-line">
                         <span className="text-yellow">&gt; [SYSTEM: TOURNAMENT STANDINGS EMPTY]</span>
                       </div>
-                      <p className="empty-main-text">
+                      <p className="empty-main-text" style={{ margin: "0.75rem 0" }}>
                         ZERO SQUADS ENLISTED IN ARENA DATABASE.
                       </p>
-                      <p className="empty-sub-text">
+                      <p className="empty-sub-text" style={{ margin: "0 0 1.25rem 0" }}>
                         Ingest squads via Excel (.xlsx) / CSV or manual registration in the <strong>Teams</strong> section to populate the tournament leaderboard.
                       </p>
-                      <div className="flex gap-3 mt-3">
+                      <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem" }}>
                         <button
                           type="button"
                           onClick={onNavigateToTeams}
@@ -703,7 +764,7 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
               ) : filteredTeams.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="cec-empty-state-cell">
-                    <div className="empty-state-terminal">
+                    <div className="empty-state-terminal" style={{ padding: "2rem" }}>
                       <p className="empty-main-text">
                         // NO SQUADS MATCH FILTER CRITERIA
                       </p>
@@ -988,13 +1049,11 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
               {/* Adjustment Type Toggle */}
               <div className="form-group">
                 <label className="cec-field-label">ADJUSTMENT ACTION *</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <button
                     type="button"
                     onClick={() => setAdjustmentType("BONUS")}
-                    className={`cec-action-btn ${
-                      adjustmentType === "BONUS" ? "btn-edit" : ""
-                    }`}
+                    className="cec-action-btn"
                     style={{
                       height: "44px",
                       borderColor:
@@ -1010,9 +1069,7 @@ export const LeaderboardManagement: React.FC<LeaderboardManagementProps> = ({
                   <button
                     type="button"
                     onClick={() => setAdjustmentType("PENALTY")}
-                    className={`cec-action-btn ${
-                      adjustmentType === "PENALTY" ? "btn-edit" : ""
-                    }`}
+                    className="cec-action-btn"
                     style={{
                       height: "44px",
                       borderColor:
