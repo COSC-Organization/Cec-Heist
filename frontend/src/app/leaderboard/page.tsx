@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import { useAuth } from "../../context/AuthContext";
+import AuthGuard from "../../components/AuthGuard";
+import { api, RankedTeam } from "../../lib/api";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -112,71 +115,65 @@ const ScrambleText = ({ text }: { text: string }) => {
 
 interface LeaderboardEntry {
   rank: number;
+  id: number;
   teamName: string;
   score: number;
-}
-
-interface LeaderboardApiResponse {
-  success: boolean;
-  data: {
-    rank: number;
-    team_name: string;
-    score: number;
-  }[];
 }
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTeams, setTotalTeams] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const response = await fetch("http://localhost:8788/api/leaderboard?page=1&limit=10");
-
-        if (!response.ok) {
-          throw new Error(`Leaderboard request failed (${response.status})`);
-        }
-
-        const result: LeaderboardApiResponse = await response.json();
-
-        if (!result.success) {
-          throw new Error("The leaderboard API returned an error.");
-        }
-
+  const fetchLeaderboard = useCallback(async (page: number) => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await api.leaderboard.get(page, 10);
+      if (result.success && Array.isArray(result.data)) {
         setLeaderboardData(
-          result.data.map((team) => ({
+          result.data.map((team: RankedTeam) => ({
             rank: team.rank,
+            id: team.id,
             teamName: team.team_name,
             score: team.score,
           }))
         );
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load the leaderboard."
-        );
-      } finally {
-        setLoading(false);
+        if (result.pagination) {
+          setCurrentPage(result.pagination.page);
+          setTotalPages(result.pagination.totalPages || 1);
+          setTotalTeams(result.pagination.total || result.data.length);
+        }
+      } else {
+        throw new Error("Unable to retrieve leaderboard records.");
       }
-    };
-
-    fetchLeaderboard();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchLeaderboard(currentPage);
+  }, [currentPage, fetchLeaderboard, isLoggedIn]);
 
   const filteredData = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return leaderboardData;
     return leaderboardData.filter((entry) =>
-      entry.teamName.toLowerCase().includes(q)
+      entry.teamName.toLowerCase().includes(q) || String(entry.rank) === q
     );
   }, [searchQuery, leaderboardData]);
 
@@ -211,12 +208,20 @@ export default function LeaderboardPage() {
 
     if (href === "/arena") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/arena");
+        return;
+      }
       triggerTransition("/arena", "left-to-right");
       return;
     }
 
     if (href === "/profile") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/profile");
+        return;
+      }
       triggerTransition("/profile", "left-to-right");
       return;
     }
@@ -242,7 +247,8 @@ export default function LeaderboardPage() {
   }, []);
 
   return (
-    <main className="crt-screen leaderboard-screen">
+    <AuthGuard sectorName="LEADERBOARD ARCHIVE">
+      <main className="crt-screen leaderboard-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
       <div className="scanlines-overlay" />
 
@@ -369,12 +375,19 @@ export default function LeaderboardPage() {
             />
           </div>
 
-          {/* Small, perfectly placed Search Box */}
+          {/* Small, perfectly placed Search Box & Pagination Stats */}
           <div className="leaderboard-top-bar">
-            <span className="leaderboard-count-badge font-pixel">
-              {"// "}
-              {filteredData.length} {filteredData.length === 1 ? "TEAM" : "TEAMS"}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <span className="leaderboard-count-badge font-pixel">
+                {"// "}
+                {totalTeams > 0 ? `${totalTeams} REGISTERED` : `${filteredData.length} TEAMS`}
+              </span>
+              {totalPages > 1 && (
+                <span className="leaderboard-count-badge font-pixel" style={{ color: "#00f0ff" }}>
+                  PAGE {currentPage} / {totalPages}
+                </span>
+              )}
+            </div>
 
             <div className="search-team-wrapper">
               <span className="search-team-icon font-pixel" aria-hidden="true">
@@ -384,7 +397,7 @@ export default function LeaderboardPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="SEARCH TEAM..."
+                placeholder="SEARCH SQUAD OR RANK..."
                 className="search-team-input font-pixel"
                 spellCheck={false}
               />
@@ -412,11 +425,25 @@ export default function LeaderboardPage() {
             <div className="simple-table-body">
               {loading ? (
                 <div className="simple-table-empty font-pixel">
-                  LOADING LEADERBOARD...
+                  LOADING LIVE LEADERBOARD FROM BACKEND...
                 </div>
               ) : error ? (
-                <div className="simple-table-empty font-pixel">
-                  {error} Make sure the backend is running.
+                <div className="simple-table-empty font-pixel" style={{ padding: "2rem 1rem", textAlign: "center" }}>
+                  <div style={{ color: "#ff4d4d", marginBottom: "0.75rem" }}>
+                    {error.includes("Authentication required")
+                      ? "// AUTHENTICATION REQUIRED TO VIEW LIVE LEADERBOARD"
+                      : error}
+                  </div>
+                  {error.includes("Authentication required") && (
+                    <button
+                      type="button"
+                      onClick={() => openLoginModal("/leaderboard")}
+                      className="arena-enter-btn admin-submit-btn"
+                      style={{ maxWidth: "260px", margin: "0 auto", padding: "0.5rem 1rem" }}
+                    >
+                      [ LOGIN TO VIEW SCORES ]
+                    </button>
+                  )}
                 </div>
               ) : filteredData.length === 0 ? (
                 <div className="simple-table-empty font-pixel">
@@ -430,7 +457,7 @@ export default function LeaderboardPage() {
 
                   return (
                     <div
-                      key={entry.rank}
+                      key={entry.id || entry.rank}
                       className={`simple-table-row ${
                         isTop1 ? "row-rank-1" : isTop2 ? "row-rank-2" : isTop3 ? "row-rank-3" : ""
                       }`}
@@ -450,9 +477,68 @@ export default function LeaderboardPage() {
                 })
               )}
             </div>
+
+            {/* Pagination Controls Footer */}
+            {totalPages > 1 && !loading && !error && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "0.75rem 1.25rem",
+                  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                  backgroundColor: "rgba(0, 0, 0, 0.4)",
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => {
+                    playCyberClick();
+                    setCurrentPage((prev) => Math.max(1, prev - 1));
+                  }}
+                  className="font-pixel"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: currentPage <= 1 ? "rgba(255, 255, 255, 0.3)" : "#00f0ff",
+                    padding: "0.35rem 0.8rem",
+                    cursor: currentPage <= 1 ? "not-allowed" : "pointer",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  [ &lt; PREV PAGE ]
+                </button>
+
+                <span className="font-pixel" style={{ color: "#aaa", fontSize: "0.75rem" }}>
+                  PAGE {currentPage} OF {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => {
+                    playCyberClick();
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                  }}
+                  className="font-pixel"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: currentPage >= totalPages ? "rgba(255, 255, 255, 0.3)" : "#00f0ff",
+                    padding: "0.35rem 0.8rem",
+                    cursor: currentPage >= totalPages ? "not-allowed" : "pointer",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  [ NEXT PAGE &gt; ]
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import { useAuth } from "../../context/AuthContext";
+import AuthGuard from "../../components/AuthGuard";
 import ArenaCar from "../../components/ArenaCar";
 
 // Web Audio API Sound Generators
@@ -245,6 +247,7 @@ export interface PlayCard {
   flag: string;
   status: "COMPLETED" | "PENDING";
   pic: string;
+  facilityId?: string;
 }
 
 const PLAY_CARDS: PlayCard[] = [
@@ -260,6 +263,7 @@ const PLAY_CARDS: PlayCard[] = [
     flag: "FLAG{byp4ss_pr0t0c0l_s3c01}",
     status: "COMPLETED",
     pic: "/arena/pic1.png",
+    facilityId: "factory",
   },
   {
     id: "card-2",
@@ -273,6 +277,7 @@ const PLAY_CARDS: PlayCard[] = [
     flag: "FLAG{c1ph3r_x0r_d3crypt3d}",
     status: "PENDING",
     pic: "/arena/pic2.png",
+    facilityId: "logistics",
   },
   {
     id: "card-3",
@@ -286,6 +291,7 @@ const PLAY_CARDS: PlayCard[] = [
     flag: "FLAG{n3ur4l_0v3rr1d3_byp4ss}",
     status: "PENDING",
     pic: "/arena/pic3.png",
+    facilityId: "command",
   },
   {
     id: "card-4",
@@ -299,6 +305,7 @@ const PLAY_CARDS: PlayCard[] = [
     flag: "FLAG{v4ult_m4st3r_3xtr4ct10n}",
     status: "PENDING",
     pic: "/arena/pic4.png",
+    facilityId: "vault",
   },
 ];
 
@@ -318,6 +325,7 @@ export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
@@ -326,6 +334,46 @@ export default function ArenaPage() {
   const [flagInput, setFlagInput] = useState<string>("");
   const [submitFeedback, setSubmitFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [completedChallenges, setCompletedChallenges] = useState<string[]>(["card-1"]);
+  const [allCards, setAllCards] = useState<PlayCard[]>(PLAY_CARDS);
+
+  // Sync deployed challenges from Admin localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const loadCustomChallenges = () => {
+        const saved =
+          localStorage.getItem("cec_heist_challenges_v3") ||
+          localStorage.getItem("cec_heist_challenges");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const published = parsed.filter((c: any) => c.isActive !== false && c.status !== "Draft");
+              if (published.length > 0) {
+                const mapped: PlayCard[] = published.map((c: any, idx: number) => ({
+                  id: c.id,
+                  number: String(idx + 1).padStart(2, "0"),
+                  title: c.title.toUpperCase(),
+                  desc: c.description,
+                  points: c.points,
+                  problemDescription: c.description,
+                  hint: c.hint || "Analyze system communications and reverse cipher nonces to extract the root key.",
+                  flag: c.flag || "FLAG{cecheist_override}",
+                  status: "PENDING",
+                  pic: c.pic || (c.facilityId === "factory" ? "/arena/pic1.png" : c.facilityId === "logistics" ? "/arena/pic2.png" : c.facilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png"),
+                  facilityId: c.facilityId || "factory",
+                }));
+                setAllCards(mapped);
+              }
+            }
+          } catch {}
+        }
+      };
+
+      loadCustomChallenges();
+      window.addEventListener("storage", loadCustomChallenges);
+      return () => window.removeEventListener("storage", loadCustomChallenges);
+    }
+  }, []);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -473,7 +521,15 @@ export default function ArenaPage() {
   }, [activeChallenge, activeFacility]);
 
   const selectedFacility = FACILITIES.find((f) => f.id === activeFacility);
-  const selectedCard = PLAY_CARDS.find((c) => c.id === activeChallenge);
+  const currentFacilityCards = useMemo(() => {
+    if (!activeFacility) return allCards;
+    const matched = allCards.filter((c) => c.facilityId === activeFacility);
+    return matched.length > 0 ? matched : allCards;
+  }, [allCards, activeFacility]);
+
+  const selectedCard =
+    allCards.find((c) => c.id === activeChallenge) ||
+    PLAY_CARDS.find((c) => c.id === activeChallenge);
 
   const handleFlagSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,6 +549,18 @@ export default function ArenaPage() {
         const next = prev.includes(selectedCard.id) ? prev : [...prev, selectedCard.id];
         if (typeof window !== "undefined") {
           localStorage.setItem("cec_completed_challenges", JSON.stringify(next));
+
+          // Increment solve count in deployed challenges pool
+          const savedChals = localStorage.getItem("cec_heist_challenges");
+          if (savedChals) {
+            try {
+              const chals = JSON.parse(savedChals);
+              const updated = chals.map((ch: any) =>
+                ch.id === selectedCard.id ? { ...ch, solves: (ch.solves || 0) + 1 } : ch
+              );
+              localStorage.setItem("cec_heist_challenges", JSON.stringify(updated));
+            } catch {}
+          }
         }
         return next;
       });
@@ -536,12 +604,20 @@ export default function ArenaPage() {
 
     if (href === "/leaderboard") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/leaderboard");
+        return;
+      }
       triggerTransition("/leaderboard", "left-to-right");
       return;
     }
 
     if (href === "/profile") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/profile");
+        return;
+      }
       triggerTransition("/profile", "left-to-right");
       return;
     }
@@ -581,7 +657,8 @@ export default function ArenaPage() {
   }, [activeChallenge, activeFacility]);
 
   return (
-    <main className="arena-screen">
+    <AuthGuard sectorName="INFILTRATION ARENA">
+      <main className="arena-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
 
       {/* Header Pill */}
@@ -805,43 +882,6 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Dev / Testing Factory Unlock Control */}
-      <div className="arena-unlock-tester">
-        <div className="unlock-tester-status">
-          <span className="terminal-dot pulse-amber" />
-          <span>STAGE: SEC 0{unlockedStages} / 04</span>
-        </div>
-        <button
-          type="button"
-          className="unlock-tester-btn primary"
-          onClick={() => {
-            playCyberClick();
-            if (unlockedStages < 4) {
-              triggerUnlock(unlockedStages + 1);
-            } else {
-              triggerUnlock(1);
-            }
-          }}
-          title="Unlock the next factory to test vehicle movement"
-        >
-          {unlockedStages < 4
-            ? `⚡ [UNLOCK FACTORY 0${unlockedStages + 1}]`
-            : "↺ [RESET TO FACTORY 01]"}
-        </button>
-        {unlockedStages > 1 && (
-          <button
-            type="button"
-            className="unlock-tester-btn secondary"
-            onClick={() => {
-              playCyberClick();
-              triggerUnlock(1);
-            }}
-            title="Reset progress to Factory 01"
-          >
-            [RESET]
-          </button>
-        )}
-      </div>
 
       {/* Facility Quad Cards Modal */}
       {selectedFacility && (
@@ -870,7 +910,7 @@ export default function ArenaPage() {
             </div>
             <div className="facility-modal-body empty-page">
               <div className="facility-quad-columns">
-                {PLAY_CARDS.map((card, idx) => {
+                {currentFacilityCards.map((card, idx) => {
                   const isCardCompleted = completedChallenges.includes(card.id);
 
                   return (
@@ -1050,6 +1090,7 @@ export default function ArenaPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </AuthGuard>
   );
 }
