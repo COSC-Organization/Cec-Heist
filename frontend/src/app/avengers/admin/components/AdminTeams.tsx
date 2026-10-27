@@ -17,6 +17,7 @@ export const AdminTeams: React.FC = () => {
 
   // Form Inputs
   const [teamName, setTeamName] = useState("");
+  const [teamPassword, setTeamPassword] = useState("HEIST2026");
   const [teamScore, setTeamScore] = useState<number>(1000);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,6 +54,7 @@ export const AdminTeams: React.FC = () => {
     try {
       const res = await api.teams.create({
         team_name: teamName.trim(),
+        password: teamPassword.trim() || "HEIST2026",
         score: Number(teamScore) || 0,
       });
 
@@ -60,6 +62,7 @@ export const AdminTeams: React.FC = () => {
         setSuccessMsg(`SQUAD CREATED: ${res.data.team_name} (ID: ${res.data.id})`);
         setIsCreateOpen(false);
         setTeamName("");
+        setTeamPassword("HEIST2026");
         setTeamScore(1000);
         await loadTeams();
       }
@@ -81,15 +84,22 @@ export const AdminTeams: React.FC = () => {
     setSuccessMsg(null);
 
     try {
-      const res = await api.teams.update(selectedTeam.id, {
+      const updatePayload: { team_name: string; score: number; password?: string } = {
         team_name: teamName.trim(),
         score: Number(teamScore),
-      });
+      };
+
+      if (teamPassword.trim()) {
+        updatePayload.password = teamPassword.trim();
+      }
+
+      const res = await api.teams.update(selectedTeam.id, updatePayload);
 
       if (res.success) {
         setSuccessMsg(`SQUAD UPDATED: ${res.data.team_name} - Score: ${res.data.score}`);
         setIsEditOpen(false);
         setSelectedTeam(null);
+        setTeamPassword("");
         await loadTeams();
       }
     } catch (err: unknown) {
@@ -121,10 +131,18 @@ export const AdminTeams: React.FC = () => {
     }
   };
 
+  const openCreateModal = () => {
+    setTeamName("");
+    setTeamPassword("HEIST2026");
+    setTeamScore(1000);
+    setIsCreateOpen(true);
+  };
+
   const openEditModal = (team: RankedTeam) => {
     setSelectedTeam(team);
     setTeamName(team.team_name);
     setTeamScore(team.score);
+    setTeamPassword("");
     setIsEditOpen(true);
   };
 
@@ -141,11 +159,7 @@ export const AdminTeams: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => {
-            setTeamName("");
-            setTeamScore(1000);
-            setIsCreateOpen(true);
-          }}
+          onClick={openCreateModal}
           className="overview-action-btn"
         >
           <PlusIcon className="w-4 h-4 text-white" />
@@ -310,6 +324,23 @@ export const AdminTeams: React.FC = () => {
               </div>
 
               <div className="admin-form-group">
+                <label className="admin-form-label">Squad Passcode / Password *</label>
+                <div className="admin-input-wrapper">
+                  <input
+                    type="text"
+                    required
+                    value={teamPassword}
+                    onChange={(e) => setTeamPassword(e.target.value)}
+                    placeholder="e.g. HEIST2026"
+                    className="admin-text-input"
+                  />
+                </div>
+                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", marginTop: "4px", display: "block" }}>
+                  All squad members will use the squad name and this password to log in.
+                </span>
+              </div>
+
+              <div className="admin-form-group">
                 <label className="admin-form-label">Initial Score (PTS)</label>
                 <div className="admin-input-wrapper">
                   <input
@@ -385,6 +416,19 @@ export const AdminTeams: React.FC = () => {
                     required
                     value={teamScore}
                     onChange={(e) => setTeamScore(Number(e.target.value))}
+                    className="admin-text-input"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group">
+                <label className="admin-form-label">Reset Password (Optional)</label>
+                <div className="admin-input-wrapper">
+                  <input
+                    type="text"
+                    value={teamPassword}
+                    onChange={(e) => setTeamPassword(e.target.value)}
+                    placeholder="Leave blank to keep existing password"
                     className="admin-text-input"
                   />
                 </div>

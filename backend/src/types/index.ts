@@ -11,6 +11,8 @@ export type AuthUser = {
   id: string
   email: string
   role: 'user' | 'admin'
+  teamId?: number
+  teamName?: string
 }
 
 export type AppVariables = {

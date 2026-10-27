@@ -148,52 +148,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setIsLoading(true);
 
-      // Candidate identifier format resolution
-      let candidateEmail = cleanIdentifier.toLowerCase();
-      if (!candidateEmail.includes("@")) {
-        if (candidateEmail === "coscadmin") candidateEmail = "coscadmin";
-        else if (candidateEmail === "admin") candidateEmail = "admin@test.com";
-        else if (candidateEmail === "user") candidateEmail = "user@test.com";
-      }
-
       // 1. Authenticate with real Backend API: POST /api/auth/login
       try {
         let loginRes;
         try {
-          loginRes = await api.auth.login(candidateEmail, cleanPasscode);
+          loginRes = await api.auth.login(cleanIdentifier, cleanPasscode);
         } catch (initialErr) {
-          if (!candidateEmail.includes("@")) {
-            // Try with domain suffix as fallback
-            loginRes = await api.auth.login(`${candidateEmail}@cecheist.internal`, cleanPasscode);
+          if (!cleanIdentifier.includes("@") && cleanIdentifier.toLowerCase() === "coscadmin") {
+            // Try with internal domain suffix as fallback for admin
+            loginRes = await api.auth.login(`${cleanIdentifier.toLowerCase()}@cecheist.internal`, cleanPasscode);
           } else {
             throw initialErr;
           }
         }
 
         if (loginRes.success && loginRes.accessToken) {
-          // Attempt to fetch team details from backend (GET /api/teams/:id)
-          let teamName = candidateEmail.split("@")[0].toUpperCase().replace(/[._-]/g, " ");
-          let score = 1000;
-          let rank: number | undefined;
+          const resolvedTeamName =
+            loginRes.user.teamName ||
+            cleanIdentifier.toUpperCase().replace(/[._-]/g, " ");
 
-          try {
-            const teamRes = await api.teams.getById(loginRes.user.id);
-            if (teamRes.success && teamRes.data) {
-              teamName = teamRes.data.team_name;
-              score = teamRes.data.score;
-            }
-          } catch {
-            // Team ID lookup optional if user doesn't map directly to team ID 1:1
-          }
+          const resolvedScore =
+            typeof loginRes.user.score === "number" ? loginRes.user.score : 0;
 
           const authenticatedUser: TeamUser = {
             id: loginRes.user.id,
-            teamId: String(loginRes.user.id),
-            teamName,
+            teamId: String(loginRes.user.teamId ?? loginRes.user.id),
+            teamName: resolvedTeamName,
             email: loginRes.user.email,
             role: loginRes.user.role,
-            score,
-            rank,
+            score: resolvedScore,
             clearanceLevel:
               loginRes.user.role === "admin"
                 ? "LEVEL-09 // COMMANDER"

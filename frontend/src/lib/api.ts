@@ -12,6 +12,9 @@ export interface ApiUser {
   id: number;
   email: string;
   role: "user" | "admin";
+  teamId?: number;
+  teamName?: string;
+  score?: number;
 }
 
 export interface AuthSession {
@@ -62,11 +65,13 @@ export interface TeamResponse {
 
 export interface CreateTeamPayload {
   team_name: string;
+  password?: string;
   score?: number;
 }
 
 export interface UpdateTeamPayload {
   team_name?: string;
+  password?: string;
   score?: number;
 }
 
@@ -274,7 +279,7 @@ export const api = {
 
   // 2. Authentication
   auth: {
-    login: async (email: string, password: string) => {
+    login: async (identifier: string, password: string) => {
       const res = await apiRequest<{
         success: boolean;
         message: string;
@@ -285,7 +290,12 @@ export const api = {
         user: ApiUser;
       }>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          identifier,
+          email: identifier,
+          team_name: identifier,
+          password,
+        }),
       });
 
       if (res.success && res.accessToken) {
@@ -328,6 +338,12 @@ export const api = {
 
   // 4. Teams (Admin & User)
   teams: {
+    getAll: () =>
+      apiRequest<{ success: boolean; data: Array<{ id: number; team_name: string; score: number }> }>(
+        "/api/teams",
+        { method: "GET" }
+      ),
+
     getById: (id: number) =>
       apiRequest<TeamResponse>(`/api/teams/${id}`, { method: "GET" }),
 
@@ -336,6 +352,15 @@ export const api = {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+
+    bulkCreate: (teamsList: Array<{ team_name: string; password?: string; score?: number }>) =>
+      apiRequest<{ success: boolean; count: number; data: Array<{ id: number; team_name: string; score: number }> }>(
+        "/api/teams/bulk",
+        {
+          method: "POST",
+          body: JSON.stringify({ teams: teamsList }),
+        }
+      ),
 
     update: (id: number, payload: UpdateTeamPayload) =>
       apiRequest<TeamResponse>(`/api/teams/${id}`, {

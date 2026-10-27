@@ -41,7 +41,6 @@ export const authMiddleware: MiddlewareHandler<AuthEnv> = async (c, next) => {
 
   if (
     typeof payload.sub !== 'string' ||
-    typeof payload.email !== 'string' ||
     (payload.role !== 'user' && payload.role !== 'admin') ||
     payload.tokenType !== 'access'
   ) {
@@ -53,8 +52,10 @@ export const authMiddleware: MiddlewareHandler<AuthEnv> = async (c, next) => {
 
   c.set('user', {
     id: payload.sub,
-    email: payload.email,
+    email: typeof payload.email === 'string' ? payload.email : '',
     role: payload.role,
+    teamId: typeof payload.teamId === 'number' ? payload.teamId : (payload.role === 'user' && !isNaN(Number(payload.sub)) ? Number(payload.sub) : undefined),
+    teamName: typeof payload.teamName === 'string' ? payload.teamName : undefined,
   })
 
   await next()

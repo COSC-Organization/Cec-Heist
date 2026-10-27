@@ -5,7 +5,6 @@ import { challenges } from '../db/schema/challenges'
 import { teams } from '../db/schema/teams'
 import { assignChallengesToTeam } from '../services/challenge-assignment.service'
 import type { AppContext } from '../types'
-import { users } from '../db/schema/users'
 
 export async function assignTeamChallenges(c: AppContext) {
   const teamId = Number(c.req.param('teamId'))
@@ -31,33 +30,19 @@ export async function getTeamAssignedChallenges(c: AppContext) {
   const db = createDb(c.env.cec_heist_db)
   const authUser = c.get('user')
 
-// Regular users can access only their own team's assignments.
-if (authUser.role === 'user') {
-  const [user] = await db
-    .select({
-      teamId: users.teamId,
-    })
-    .from(users)
-    .where(eq(users.id, Number(authUser.id)))
-    .limit(1)
-
-  if (!user) {
-    return c.json(
-      { success: false, message: 'User not found' },
-      404,
-    )
+  // Regular users can access only their own team's assignments.
+  if (authUser.role === 'user') {
+    const userTeamId = authUser.teamId ?? Number(authUser.id)
+    if (userTeamId !== teamId) {
+      return c.json(
+        {
+          success: false,
+          message: "You cannot access another team's assignments",
+        },
+        403,
+      )
+    }
   }
-
-  if (user.teamId === null || user.teamId !== teamId) {
-    return c.json(
-      {
-        success: false,
-        message: "You cannot access another team's assignments",
-      },
-      403,
-    )
-  }
-}
 
   if (!Number.isSafeInteger(teamId) || teamId <= 0) {
     return c.json({ success: false, message: 'Invalid team ID' }, 400)
