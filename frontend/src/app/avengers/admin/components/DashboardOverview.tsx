@@ -213,14 +213,32 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {topTeams.map((team, idx) => (
-                  <tr key={team.id} className={`mini-table-row row-${idx + 1}`}>
-                    <td className="td-rank">#{idx + 1}</td>
-                    <td className="td-name font-mono">{team.name}</td>
-                    <td className="td-solves">{team.solvedCount} / {challenges.length}</td>
-                    <td className="td-score font-mono">{team.score.toLocaleString()}</td>
+                {topTeams.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{
+                        textAlign: "center",
+                        padding: "2.5rem 1rem",
+                        color: "#71717a",
+                        fontFamily: "var(--font-space-mono), 'Space Mono', monospace",
+                        fontSize: "0.82rem",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {"// NO SQUADS CURRENTLY REGISTERED IN ARENA"}
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  topTeams.map((team, idx) => (
+                    <tr key={team.id} className={`mini-table-row row-${idx + 1}`}>
+                      <td className="td-rank">#{idx + 1}</td>
+                      <td className="td-name font-mono">{team.name}</td>
+                      <td className="td-solves">{team.solvedCount} / {challenges.length}</td>
+                      <td className="td-score font-mono">{team.score.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
