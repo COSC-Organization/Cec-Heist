@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Challenge,
   ActivityLog,
@@ -16,10 +16,7 @@ import {
   TrashIcon,
   CheckIcon,
   CloseIcon,
-  TrophyIcon,
   ActivityIcon,
-  SettingsIcon,
-  PlusIcon,
   ExternalLinkIcon,
 } from "./CyberIcons";
 
@@ -69,7 +66,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   // Track if user manually modified points
   const [pointsManuallyEdited, setPointsManuallyEdited] = useState(false);
 
-  // Level-specific points allocations
+  // Level-specific points allocations across all existing challenges
   const levelAllocations = useMemo(() => {
     const acc = { 1: 0, 2: 0, 3: 0, 4: 0 };
     challenges.forEach((c) => {
@@ -78,6 +75,23 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     });
     return acc;
   }, [challenges]);
+
+  // Current level capacity tracking for the active form level
+  const currentLevelExistingPoints = useMemo(() => {
+    return challenges
+      .filter((c) => (c.level || 1) === formLevel && c.id !== editingChallenge?.id)
+      .reduce((sum, c) => sum + (c.points || 0), 0);
+  }, [challenges, formLevel, editingChallenge]);
+
+  const maxPointsForFormLevel =
+    LEVEL_POINTS_CONFIG[formLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
+
+  const remainingPointsForFormLevel = Math.max(
+    0,
+    maxPointsForFormLevel - currentLevelExistingPoints
+  );
+
+  const isOverAllocating = formPoints > remainingPointsForFormLevel;
 
   const totalPoints = useMemo(
     () => challenges.reduce((sum, c) => sum + (c.points || 0), 0),
@@ -94,13 +108,21 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     [challenges]
   );
 
-  // When Level changes in form, auto-suggest level default points if not manually overridden
+  // When Level changes in form, calculate remaining capacity for that level
   const handleLevelChange = (newLevel: number) => {
     setFormLevel(newLevel);
+    setFormError(null);
+    const maxLvl = LEVEL_POINTS_CONFIG[newLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
+    const existing = challenges
+      .filter((c) => (c.level || 1) === newLevel && c.id !== editingChallenge?.id)
+      .reduce((sum, c) => sum + (c.points || 0), 0);
+    const rem = Math.max(0, maxLvl - existing);
+
+    // If remaining is > 0 and user hasn't explicitly locked a custom point value, suggest the remaining points
     if (!pointsManuallyEdited && !editingChallenge) {
-      const defaultPts =
-        LEVEL_POINTS_CONFIG[newLevel as keyof typeof LEVEL_POINTS_CONFIG] || 100;
-      setFormPoints(defaultPts);
+      setFormPoints(rem > 0 ? rem : 0);
+    } else if (formPoints > rem) {
+      setFormPoints(rem);
     }
   };
 
@@ -154,6 +176,27 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     }
     if (cleanPoints <= 0) {
       setFormError("POINTS allocated must be greater than 0.");
+      return;
+    }
+
+    // Strict Level Points Cap Validation
+    const maxLevelPts = LEVEL_POINTS_CONFIG[cleanLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
+    const existingLevelPts = challenges
+      .filter((c) => (c.level || 1) === cleanLevel && c.id !== editingChallenge?.id)
+      .reduce((sum, c) => sum + (c.points || 0), 0);
+
+    const remainingForLevel = maxLevelPts - existingLevelPts;
+
+    if (cleanPoints > remainingForLevel) {
+      if (remainingForLevel <= 0) {
+        setFormError(
+          `Level 0${cleanLevel} is already fully satisfied at ${maxLevelPts}/${maxLevelPts} PTS. No further questions can be added to this level unless existing questions are edited or removed.`
+        );
+      } else {
+        setFormError(
+          `Cannot allocate ${cleanPoints} PTS. Level 0${cleanLevel} has only ${remainingForLevel} PTS remaining to satisfy its ${maxLevelPts} PTS cap (Currently allocated: ${existingLevelPts} PTS).`
+        );
+      }
       return;
     }
 
@@ -211,8 +254,13 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     // Reset form fields
     setFormTitle("");
     setFormCategory("WEB");
-    setFormLevel(1);
-    setFormPoints(LEVEL_POINTS_CONFIG[1]);
+    setFormLevel(cleanLevel);
+    
+    // Auto-suggest next remaining points for the same level if any remain
+    const nextExisting = existingLevelPts + cleanPoints;
+    const nextRem = Math.max(0, maxLevelPts - nextExisting);
+    setFormPoints(nextRem > 0 ? nextRem : 50);
+
     setFormDescription("");
     setFormFlag("");
     setFormClueLink("");
@@ -293,7 +341,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       <ConfirmationModal
         isOpen={deletingChallenge !== null}
         title="PURGE CHALLENGE VECTOR"
-        message={`Are you sure you want to permanently delete '${deletingChallenge?.title}'? All allotted points (${deletingChallenge?.points || 0} PTS) and question parameters will be removed from the matrix.`}
+        message={`Are you sure you want to permanently delete '${deletingChallenge?.title}'? All allotted points (${deletingChallenge?.points || 0} PTS) will be freed up in Level 0${deletingChallenge?.level || 1}.`}
         confirmLabel="PURGE QUESTION"
         type="danger"
         onConfirm={handleConfirmDelete}
@@ -351,13 +399,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
 
                 <div className="level-card-meta">
                   <span className="level-count">{chalCount} {chalCount === 1 ? "Question" : "Questions"}</span>
-                  <span className="level-status-pill">
+                  <span className={`level-status-pill ${isFull ? "text-green font-bold" : ""}`}>
                     {currentPts === 0
-                      ? "UNALLOCATED"
+                      ? "0 PTS ALLOCATED"
                       : currentPts === maxPts
-                      ? "COMPLETED (100%)"
-                      : currentPts > maxPts
-                      ? `OVER BY +${currentPts - maxPts} PTS`
+                      ? "SATISFIED (100%)"
                       : `${maxPts - currentPts} PTS REMAINING`}
                   </span>
                 </div>
@@ -429,7 +475,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               </select>
             </div>
 
-            {/* LEVEL (1 to 4 with auto point presets) */}
+            {/* LEVEL (1 to 4 with capacity indicators) */}
             <div className="form-group">
               <label htmlFor="cec-chal-level" className="cec-field-label">
                 LEVEL (TARGET POOL) <span className="text-red">*</span>
@@ -440,10 +486,19 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                 onChange={(e) => handleLevelChange(Number(e.target.value))}
                 className="cec-terminal-select"
               >
-                <option value={1}>LEVEL 1 [200 PTS MAX POOL]</option>
-                <option value={2}>LEVEL 2 [100 PTS MAX POOL]</option>
-                <option value={3}>LEVEL 3 [250 PTS MAX POOL]</option>
-                <option value={4}>LEVEL 4 [450 PTS MAX POOL]</option>
+                {LEVELS.map((lvl) => {
+                  const cap = LEVEL_POINTS_CONFIG[lvl];
+                  const used = challenges
+                    .filter((c) => (c.level || 1) === lvl && c.id !== editingChallenge?.id)
+                    .reduce((sum, c) => sum + (c.points || 0), 0);
+                  const rem = Math.max(0, cap - used);
+                  const count = challenges.filter((c) => (c.level || 1) === lvl).length;
+                  return (
+                    <option key={lvl} value={lvl}>
+                      LEVEL 0{lvl} — {used}/{cap} PTS ({count} {count === 1 ? "q" : "q's"}, {rem} PTS rem)
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -456,19 +511,28 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                 id="cec-chal-points"
                 type="number"
                 min={1}
+                max={remainingPointsForFormLevel > 0 ? remainingPointsForFormLevel : undefined}
                 step={5}
                 value={formPoints}
                 onChange={(e) => {
                   setFormPoints(Number(e.target.value));
                   setPointsManuallyEdited(true);
+                  setFormError(null);
                 }}
                 required
-                className="cec-terminal-input"
+                className={`cec-terminal-input ${isOverAllocating ? "input-border-warning" : ""}`}
               />
-              <span className="field-hint-text">
-                Level 0{formLevel} pool: {levelAllocations[formLevel as 1 | 2 | 3 | 4] || 0} /{" "}
-                {LEVEL_POINTS_CONFIG[formLevel as keyof typeof LEVEL_POINTS_CONFIG]} PTS
-              </span>
+              <div className="field-hint-wrap">
+                <span className="field-hint-text">
+                  Level 0{formLevel} Cap: <strong className="text-cyan">{currentLevelExistingPoints} / {maxPointsForFormLevel} PTS</strong>
+                  {" "}• {remainingPointsForFormLevel} PTS available
+                </span>
+                {isOverAllocating && (
+                  <span className="field-warning-text">
+                    ⚠️ Exceeds remaining {remainingPointsForFormLevel} PTS for Level 0{formLevel}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -525,9 +589,13 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             </div>
           </div>
 
-          {/* ACTION BUTTON ROW */}
+          {/* ACTION BUTTON ROW — Strictly anchored in place, never shifts */}
           <div className="form-action-row">
-            <button type="submit" className="arena-enter-btn cec-submit-btn">
+            <button
+              type="submit"
+              className="cec-submit-btn"
+              disabled={remainingPointsForFormLevel <= 0 && !editingChallenge}
+            >
               {editingChallenge ? "[ SAVE MODIFICATIONS ]" : "[ INITIALIZE CHALLENGE ]"}
             </button>
             {editingChallenge && (
@@ -538,6 +606,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               >
                 [ CANCEL EDIT ]
               </button>
+            )}
+            {remainingPointsForFormLevel <= 0 && !editingChallenge && (
+              <span className="level-satisfied-note">
+                ✓ Level 0{formLevel} pool is 100% satisfied ({maxPointsForFormLevel}/{maxPointsForFormLevel} PTS). Select another level to add more questions.
+              </span>
             )}
           </div>
         </form>
@@ -669,7 +742,8 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                       </p>
                       <p className="empty-sub-text">
                         The entire 1,000 PTS competition pool is ready for allocation.
-                        Use the <strong>[ + ] DEPLOY CHALLENGE VECTOR</strong> form above to deploy questions for Level 1 (200 PTS), Level 2 (100 PTS), Level 3 (250 PTS), and Level 4 (450 PTS).
+                        You can allocate any number of questions and points for each level up to its cap:
+                        Level 1 (200 PTS), Level 2 (100 PTS), Level 3 (250 PTS), and Level 4 (450 PTS).
                       </p>
                     </div>
                   </td>

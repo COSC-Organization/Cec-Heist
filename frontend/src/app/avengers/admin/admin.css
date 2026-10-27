@@ -2780,34 +2780,63 @@
   margin-top: 0.15rem;
 }
 
+/* Action Button Row — Strictly anchored in place, fixed position in flow */
 .form-action-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: static !important;
+  width: 100% !important;
 }
 
 .cec-submit-btn {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: #00f3ff !important;
   color: #040406 !important;
+  font-family: 'FK Raster Roman', var(--font-pixelify), 'Pixelify Sans', monospace !important;
   font-weight: 700 !important;
-  border: 1.5px solid #00f3ff !important;
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4) !important;
-  padding: 0.85rem 2rem !important;
-  letter-spacing: 2px !important;
   font-size: 0.95rem !important;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  letter-spacing: 2px !important;
+  border: 1.5px solid #00f3ff !important;
+  border-radius: 4px !important;
+  padding: 0.85rem 2.2rem !important;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4) !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+  transform: none !important;
+  min-width: 260px !important;
+  height: 48px !important;
 }
 
-.cec-submit-btn:hover {
+.cec-submit-btn:hover:not(:disabled) {
   background: #ffffff !important;
   border-color: #ffffff !important;
+  color: #040406 !important;
   box-shadow: 0 0 28px rgba(255, 255, 255, 0.7) !important;
-  transform: translateY(-1px);
+  transform: none !important;
+}
+
+.cec-submit-btn:active:not(:disabled) {
+  transform: none !important;
+}
+
+.cec-submit-btn:disabled {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #71717a !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
 }
 
 .cec-cancel-btn {
+  position: static !important;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #a1a1aa;
@@ -2819,11 +2848,41 @@
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cec-cancel-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
+}
+
+.level-satisfied-note {
+  font-family: var(--font-space-mono), 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: #00ff66;
+  letter-spacing: 0.5px;
+}
+
+.field-hint-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.field-warning-text {
+  font-family: var(--font-space-mono), 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: #ff003c;
+  letter-spacing: 0.5px;
+}
+
+.input-border-warning {
+  border-color: #ff003c !important;
+  box-shadow: 0 0 10px rgba(255, 0, 60, 0.35) !important;
 }
 
 /* --------------------------------------------------------------------------
