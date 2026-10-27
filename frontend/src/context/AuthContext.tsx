@@ -22,68 +22,7 @@ export const ORGANIZER_TEAMS: Array<{
   teamName: string;
   defaultScore: number;
   defaultPasscode: string;
-}> = [
-  {
-    teamId: "ZERO_DAY_SYNDICATE",
-    teamName: "Zero Day Syndicate",
-    defaultScore: 15420,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "BYTE_BANDITS",
-    teamName: "Byte Bandits",
-    defaultScore: 13200,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "RED_TEAM_SIX",
-    teamName: "Red Team Six",
-    defaultScore: 11850,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "PHANTOM_NODE",
-    teamName: "Phantom Node",
-    defaultScore: 9940,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "KRONOS_PROTOCOL",
-    teamName: "Kronos Protocol",
-    defaultScore: 8650,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "NEO_MATRIX_CREW",
-    teamName: "Neo Matrix Crew",
-    defaultScore: 7420,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "CYBER_VIPERS",
-    teamName: "Cyber Vipers",
-    defaultScore: 6810,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "QUANTUM_HEIST",
-    teamName: "Quantum Heist",
-    defaultScore: 5920,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "DARK_SOLARIS",
-    teamName: "Dark Solaris",
-    defaultScore: 5180,
-    defaultPasscode: "HEIST2026",
-  },
-  {
-    teamId: "ROOT_FORCE",
-    teamName: "Root Force",
-    defaultScore: 4150,
-    defaultPasscode: "HEIST2026",
-  },
-];
+}> = [];
 
 interface AuthContextType {
   user: TeamUser | null;

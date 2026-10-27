@@ -7,8 +7,8 @@ import { AdminLogin } from "./components/AdminLogin";
 import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
-import { AdminTeams } from "./components/AdminTeams";
-import { AdminChallenges } from "./components/AdminChallenges";
+import { ChallengeManagement } from "./components/ChallengeManagement";
+import { TeamManagement } from "./components/TeamManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 import { getStoredUser, getAccessToken, clearAuthTokens } from "@/lib/api";
@@ -44,21 +44,193 @@ export default function AdminPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
   // Core Datasets
-  const [teams] = useState<Team[]>(INITIAL_TEAMS);
-  const [challenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
+  const [teams, setTeams] = useState<Team[]>(() => {
+    if (typeof window !== "undefined") {
+      const savedTeams = localStorage.getItem("cec_heist_teams_v1");
+      if (savedTeams) {
+        try {
+          const parsed = JSON.parse(savedTeams);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+      }
+    }
+    return INITIAL_TEAMS;
+  });
+
+  const [challenges, setChallenges] = useState<Challenge[]>(() => {
+    if (typeof window !== "undefined") {
+      const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
+      if (savedV3) {
+        try {
+          const parsed = JSON.parse(savedV3);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+      }
+      const oldSaved = localStorage.getItem("cec_heist_challenges");
+      if (oldSaved) {
+        try {
+          const parsed = JSON.parse(oldSaved);
+          if (Array.isArray(parsed) && parsed.some((c: any) => c.id?.startsWith("CHAL-0"))) {
+            localStorage.removeItem("cec_heist_challenges");
+          }
+        } catch {}
+      }
+    }
+    return INITIAL_CHALLENGES;
+  });
+
+  // Sync challenges and teams with localStorage and cross-tab updates
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if ((e.key === "cec_heist_challenges_v3" || e.key === "cec_heist_challenges") && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setChallenges(parsed);
+        } catch {}
+      }
+      if (e.key === "cec_heist_teams_v1" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setTeams(parsed);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
+  const [isDeployModalRequested, setIsDeployModalRequested] = useState<boolean>(false);
 
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs((prev) => [newLog, ...prev]);
   };
 
+  const handleAddChallenge = (newChallenge: Challenge) => {
+    setChallenges((prev) => {
+      const next = [newChallenge, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const handleUpdateChallenge = (updated: Challenge) => {
+    setChallenges((prev) => {
+      const next = prev.map((c) => (c.id === updated.id ? updated : c));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteChallenge = (id: string) => {
+    setChallenges((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  // Squad / Team Handlers
+  const handleAddTeam = (newTeam: Team) => {
+    setTeams((prev) => {
+      const next = [newTeam, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Squad ${newTeam.name} enlisted into tournament roster`,
+    });
+  };
+
+  const handleAddTeams = (newTeams: Team[]) => {
+    setTeams((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const toAdd = newTeams.filter((t) => !existingIds.has(t.id));
+      const next = [...toAdd, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Batch ingested ${newTeams.length} squads via bulk spreadsheet upload`,
+    });
+  };
+
+  const handleUpdateTeam = (updated: Team) => {
+    setTeams((prev) => {
+      const next = prev.map((t) => (t.id === updated.id ? updated : t));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Squad profile updated for ${updated.name}`,
+    });
+  };
+
+  const handleDeleteTeam = (id: string) => {
+    setTeams((prev) => {
+      const deleted = prev.find((t) => t.id === id);
+      const next = prev.filter((t) => t.id !== id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      if (deleted) {
+        handleAddLog({
+          id: `LOG-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "system_alert",
+          message: `Squad ${deleted.name} (${id}) revoked from tournament`,
+        });
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteAllTeams = () => {
+    setTeams([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cec_heist_teams_v1");
+    }
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "system_alert",
+      message: "Squad roster purged. All team registrations cleared.",
+    });
+  };
+
+  // Quick modals
   const handleOpenAddTeam = () => {
     setActiveTab("teams");
   };
 
   const handleOpenAddChallenge = () => {
     setActiveTab("challenges");
+    setIsDeployModalRequested(true);
   };
 
   // Auth Handlers
@@ -130,15 +302,35 @@ export default function AdminPage() {
           />
         )}
 
-        {activeTab === "teams" && <AdminTeams />}
+        {activeTab === "challenges" && (
+          <ChallengeManagement
+            challenges={challenges}
+            onAddChallenge={handleAddChallenge}
+            onUpdateChallenge={handleUpdateChallenge}
+            onDeleteChallenge={handleDeleteChallenge}
+            onAddLog={handleAddLog}
+            initialDeployModalOpen={isDeployModalRequested}
+            onCloseInitialDeployModal={() => setIsDeployModalRequested(false)}
+          />
+        )}
 
-        {activeTab === "challenges" && <AdminChallenges />}
+        {activeTab === "teams" && (
+          <TeamManagement
+            teams={teams}
+            onAddTeam={handleAddTeam}
+            onAddTeams={handleAddTeams}
+            onUpdateTeam={handleUpdateTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onDeleteAllTeams={handleDeleteAllTeams}
+            onAddLog={handleAddLog}
+          />
+        )}
 
         {/* Feature Placeholders for any other tabs */}
         {activeTab !== "overview" &&
           activeTab !== "event-controls" &&
-          activeTab !== "teams" &&
-          activeTab !== "challenges" && (
+          activeTab !== "challenges" &&
+          activeTab !== "teams" && (
             <div
               className="overview-panel cyber-corners"
               style={{ padding: "3rem", textAlign: "center" }}

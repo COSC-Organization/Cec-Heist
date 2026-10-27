@@ -35,7 +35,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const totalOperatives = teams.reduce((acc, team) => acc + team.members.length, 0);
   const totalPoints = challenges.reduce((acc, c) => acc + c.points, 0);
-  const totalSolves = challenges.reduce((acc, c) => acc + c.solves, 0);
+  const totalSolves = challenges.reduce((acc, c) => acc + (c.solves || 0), 0);
   const topTeams = [...teams].sort((a, b) => b.score - a.score).slice(0, 5);
 
   const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking");
@@ -216,10 +216,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <span className="info-val">CEC HEIST 2K26</span>
               </div>
               <div className="info-row">
-                <span className="info-key">PUBLIC PORTAL:</span>
-                <span className="info-val">
-                  {eventConfig.isPublished ? "PUBLISHED / OPEN" : "RESTRICTED / HIDDEN"}
-                </span>
+                <span className="info-key">MAX POOL:</span>
+                <span className="info-val text-green">{eventConfig.totalPoints.toLocaleString()} PTS</span>
               </div>
               <div className="info-row">
                 <span className="info-key">START TIME:</span>
@@ -261,14 +259,32 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {topTeams.map((team, idx) => (
-                  <tr key={team.id} className={`mini-table-row row-${idx + 1}`}>
-                    <td className="td-rank">#{idx + 1}</td>
-                    <td className="td-name font-mono">{team.name}</td>
-                    <td className="td-solves">{team.solvedCount} / {challenges.length}</td>
-                    <td className="td-score font-mono">{team.score.toLocaleString()}</td>
+                {topTeams.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{
+                        textAlign: "center",
+                        padding: "2.5rem 1rem",
+                        color: "#71717a",
+                        fontFamily: "var(--font-space-mono), 'Space Mono', monospace",
+                        fontSize: "0.82rem",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {"// NO SQUADS CURRENTLY REGISTERED IN ARENA"}
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  topTeams.map((team, idx) => (
+                    <tr key={team.id} className={`mini-table-row row-${idx + 1}`}>
+                      <td className="td-rank">#{idx + 1}</td>
+                      <td className="td-name font-mono">{team.name}</td>
+                      <td className="td-solves">{team.solvedCount} / {challenges.length}</td>
+                      <td className="td-score font-mono">{team.score.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
