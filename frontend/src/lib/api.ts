@@ -2,7 +2,10 @@
 // Handles base URL, auth token injection, automatic token refresh, and endpoint integrations.
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname.includes("cosc25.in")
+    ? "https://cec-heist-backend.cosc25.in"
+    : "http://localhost:8787");
 
 const ACCESS_TOKEN_KEY = "cec_heist_access_token";
 const REFRESH_TOKEN_KEY = "cec_heist_refresh_token";
