@@ -9,6 +9,7 @@ import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
 import { ChallengeManagement } from "./components/ChallengeManagement";
 import { TeamManagement } from "./components/TeamManagement";
+import { LeaderboardManagement } from "./components/LeaderboardManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 import { getStoredUser, getAccessToken, clearAuthTokens } from "@/lib/api";
@@ -98,7 +99,12 @@ export default function AdminPage() {
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
-
+  const [isLeaderboardFrozen, setIsLeaderboardFrozen] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("cec_heist_leaderboard_frozen") === "true";
+    }
+    return false;
+  });
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
   const [isDeployModalRequested, setIsDeployModalRequested] = useState<boolean>(false);
@@ -223,6 +229,99 @@ export default function AdminPage() {
     });
   };
 
+
+  // Leaderboard / Scorekeeper Handlers
+  const handleToggleFreeze = (frozen: boolean) => {
+    setIsLeaderboardFrozen(frozen);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cec_heist_leaderboard_frozen", String(frozen));
+    }
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "system_alert",
+      message: frozen
+        ? "Leaderboard FROZEN. Public scoreboard locked to current standings."
+        : "Leaderboard UNFROZEN. Real-time scoreboard streaming resumed.",
+    });
+  };
+
+  const handleUpdateTeamScore = (
+    teamId: string,
+    deltaPoints: number,
+    reason: string
+  ) => {
+    setTeams((prev) => {
+      const next = prev.map((t) => {
+        if (t.id === teamId) {
+          const newScore = Math.max(0, (t.score || 0) + deltaPoints);
+          return {
+            ...t,
+            score: newScore,
+            lastActive: new Date().toTimeString().split(" ")[0],
+          };
+        }
+        return t;
+      });
+
+      const sorted = [...next].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
+        return a.id.localeCompare(b.id);
+      });
+      const reRanked = sorted.map((t, idx) => ({ ...t, rank: idx + 1 }));
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(reRanked));
+      }
+      return reRanked;
+    });
+
+    const targetTeam = teams.find((t) => t.id === teamId);
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: deltaPoints >= 0 ? "flag_solved" : "system_alert",
+      message: `Score adjustment for ${targetTeam?.name || teamId}: ${deltaPoints > 0 ? "+" : ""}${deltaPoints} PTS. Reason: ${reason}`,
+    });
+  };
+
+  const handleResetTeamScore = (teamId: string) => {
+    setTeams((prev) => {
+      const next = prev.map((t) => {
+        if (t.id === teamId) {
+          return {
+            ...t,
+            score: 0,
+            solvedCount: 0,
+            lastActive: "Idle",
+          };
+        }
+        return t;
+      });
+
+      const sorted = [...next].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
+        return a.id.localeCompare(b.id);
+      });
+      const reRanked = sorted.map((t, idx) => ({ ...t, rank: idx + 1 }));
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(reRanked));
+      }
+      return reRanked;
+    });
+
+    const targetTeam = teams.find((t) => t.id === teamId);
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "system_alert",
+      message: `Score reset to 0 PTS for squad ${targetTeam?.name || teamId}`,
+    });
+  };
+
   // Quick modals
   const handleOpenAddTeam = () => {
     setActiveTab("teams");
@@ -325,35 +424,40 @@ export default function AdminPage() {
             onAddLog={handleAddLog}
           />
         )}
-
-        {/* Feature Placeholders for any other tabs */}
+        {activeTab === "leaderboard" && (
+          <LeaderboardManagement
+            teams={teams}
+            challenges={challenges}
+            isFrozen={isLeaderboardFrozen}
+            onToggleFreeze={handleToggleFreeze}
+            onUpdateTeamScore={handleUpdateTeamScore}
+            onResetTeamScore={handleResetTeamScore}
+            onAddLog={handleAddLog}
+            onNavigateToTeams={() => setActiveTab("teams")}
+          />
+        )}
         {activeTab !== "overview" &&
           activeTab !== "event-controls" &&
           activeTab !== "challenges" &&
-          activeTab !== "teams" && (
-            <div
-              className="overview-panel cyber-corners"
-              style={{ padding: "3rem", textAlign: "center" }}
+          activeTab !== "teams" &&
+          activeTab !== "leaderboard" && (
+          <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
+            <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
+              MODULE STANDBY: {String(activeTab).toUpperCase()}
+            </h3>
+            <p className="overview-subtitle" style={{ margin: "0.75rem 0 1.5rem 0" }}>
+              {"// Ready for next feature implementation step."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab("overview")}
+              className="arena-enter-btn admin-submit-btn"
+              style={{ maxWidth: "260px", margin: "0 auto" }}
             >
-              <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
-                MODULE STANDBY: {activeTab.toUpperCase()}
-              </h3>
-              <p
-                className="overview-subtitle"
-                style={{ margin: "0.75rem 0 1.5rem 0" }}
-              >
-                {"// Ready for next feature implementation step."}
-              </p>
-              <button
-                type="button"
-                onClick={() => setActiveTab("overview")}
-                className="arena-enter-btn admin-submit-btn"
-                style={{ maxWidth: "260px", margin: "0 auto" }}
-              >
-                [ RETURN TO OVERVIEW ]
-              </button>
-            </div>
-          )}
+              [ RETURN TO OVERVIEW ]
+            </button>
+          </div>
+        )}
       </AdminLayout>
     </>
   );
