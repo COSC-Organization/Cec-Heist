@@ -134,9 +134,14 @@ export default function LeaderboardPage() {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isFrozen, setIsFrozen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsFrozen(localStorage.getItem("cec_heist_leaderboard_frozen") === "true");
+    }
+
     const fetchLeaderboard = async () => {
       try {
         const response = await fetch("http://localhost:8788/api/leaderboard?page=1&limit=10");
@@ -158,7 +163,33 @@ export default function LeaderboardPage() {
             score: team.score,
           }))
         );
+        setError("");
       } catch (err) {
+        // Fallback to local tournament squads if available
+        if (typeof window !== "undefined") {
+          const localTeams = localStorage.getItem("cec_heist_teams_v1");
+          if (localTeams) {
+            try {
+              const parsed = JSON.parse(localTeams);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                const sorted = [...parsed].sort((a, b) => {
+                  if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+                  if ((b.solvedCount || 0) !== (a.solvedCount || 0)) return (b.solvedCount || 0) - (a.solvedCount || 0);
+                  return (a.id || "").localeCompare(b.id || "");
+                });
+                setLeaderboardData(
+                  sorted.map((t, idx) => ({
+                    rank: idx + 1,
+                    teamName: t.name,
+                    score: t.score || 0,
+                  }))
+                );
+                setError("");
+                return;
+              }
+            } catch {}
+          }
+        }
         setError(
           err instanceof Error
             ? err.message
@@ -401,6 +432,20 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
+          {isFrozen && (
+            <div
+              className="font-pixel text-center py-2 px-4 mb-4 rounded border"
+              style={{
+                backgroundColor: "rgba(255, 184, 0, 0.15)",
+                borderColor: "#ffb800",
+                color: "#ffb800",
+                fontSize: "0.85rem",
+                letterSpacing: "1px",
+              }}
+            >
+              ❄️ LEADERBOARD FROZEN // SCORES ARE TEMPORARILY LOCKED FOR TOURNAMENT AUDIT
+            </div>
+          )}
           {/* Simple Table: Rank | Team Name | Score */}
           <div className="simple-leaderboard-card">
             <div className="simple-table-header font-pixel">
