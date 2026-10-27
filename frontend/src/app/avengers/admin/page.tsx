@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./admin.css";
 
 import { AdminLogin } from "./components/AdminLogin";
 import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
+import { AdminTeams } from "./components/AdminTeams";
+import { AdminChallenges } from "./components/AdminChallenges";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
+import { getStoredUser, getAccessToken, clearAuthTokens } from "@/lib/api";
 
 import {
   INITIAL_TEAMS,
@@ -23,9 +26,20 @@ import {
 } from "./data/mockData";
 
 export default function AdminPage() {
-  // Session State (simulated client-side session)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [adminEmail, setAdminEmail] = useState<string>("");
+  // Session State (checks stored admin session on mount)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const user = getStoredUser();
+    const token = getAccessToken();
+    return Boolean(token && user && user.role === "admin");
+  });
+
+  const [adminEmail, setAdminEmail] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const user = getStoredUser();
+    return user && user.role === "admin" ? user.email : "";
+  });
+
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
@@ -39,7 +53,6 @@ export default function AdminPage() {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  // Quick modals placeholder (will connect with Feature 2 & 3)
   const handleOpenAddTeam = () => {
     setActiveTab("teams");
   };
@@ -63,6 +76,7 @@ export default function AdminPage() {
 
   const handleConfirmLogout = () => {
     playVaultTransitionSound("left-to-right");
+    clearAuthTokens();
     setIsAuthenticated(false);
     setIsLogoutModalOpen(false);
     setActiveTab("overview");
@@ -73,7 +87,7 @@ export default function AdminPage() {
     return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 2. If authenticated, render Admin Dashboard Layout with Feature 1: Overview
+  // 2. If authenticated, render Admin Dashboard Layout
   return (
     <>
       {/* Logout Confirmation Modal */}
@@ -93,7 +107,7 @@ export default function AdminPage() {
         teamCount={teams.length}
         challengeCount={challenges.length}
         eventStatus={eventConfig.status}
-        adminEmail={adminEmail || "admin@cecheist.internal"}
+        adminEmail={adminEmail || "admin@test.com"}
         onLogoutRequest={() => setIsLogoutModalOpen(true)}
       >
         {activeTab === "overview" && (
@@ -116,25 +130,38 @@ export default function AdminPage() {
           />
         )}
 
-        {/* Feature Placeholders ready to build next */}
-        {activeTab !== "overview" && activeTab !== "event-controls" && (
-          <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
-            <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
-              MODULE STANDBY: {activeTab.toUpperCase()}
-            </h3>
-            <p className="overview-subtitle" style={{ margin: "0.75rem 0 1.5rem 0" }}>
-              {"// Ready for next feature implementation step."}
-            </p>
-            <button
-              type="button"
-              onClick={() => setActiveTab("overview")}
-              className="arena-enter-btn admin-submit-btn"
-              style={{ maxWidth: "260px", margin: "0 auto" }}
+        {activeTab === "teams" && <AdminTeams />}
+
+        {activeTab === "challenges" && <AdminChallenges />}
+
+        {/* Feature Placeholders for any other tabs */}
+        {activeTab !== "overview" &&
+          activeTab !== "event-controls" &&
+          activeTab !== "teams" &&
+          activeTab !== "challenges" && (
+            <div
+              className="overview-panel cyber-corners"
+              style={{ padding: "3rem", textAlign: "center" }}
             >
-              [ RETURN TO OVERVIEW ]
-            </button>
-          </div>
-        )}
+              <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
+                MODULE STANDBY: {activeTab.toUpperCase()}
+              </h3>
+              <p
+                className="overview-subtitle"
+                style={{ margin: "0.75rem 0 1.5rem 0" }}
+              >
+                {"// Ready for next feature implementation step."}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab("overview")}
+                className="arena-enter-btn admin-submit-btn"
+                style={{ maxWidth: "260px", margin: "0 auto" }}
+              >
+                [ RETURN TO OVERVIEW ]
+              </button>
+            </div>
+          )}
       </AdminLayout>
     </>
   );

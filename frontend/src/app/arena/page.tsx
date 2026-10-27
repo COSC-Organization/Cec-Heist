@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import { useAuth } from "../../context/AuthContext";
+import AuthGuard from "../../components/AuthGuard";
 import ArenaCar from "../../components/ArenaCar";
 
 // Web Audio API Sound Generators
@@ -318,6 +320,7 @@ export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
@@ -536,12 +539,20 @@ export default function ArenaPage() {
 
     if (href === "/leaderboard") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/leaderboard");
+        return;
+      }
       triggerTransition("/leaderboard", "left-to-right");
       return;
     }
 
     if (href === "/profile") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/profile");
+        return;
+      }
       triggerTransition("/profile", "left-to-right");
       return;
     }
@@ -581,7 +592,8 @@ export default function ArenaPage() {
   }, [activeChallenge, activeFacility]);
 
   return (
-    <main className="arena-screen">
+    <AuthGuard sectorName="INFILTRATION ARENA">
+      <main className="arena-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
 
       {/* Header Pill */}
@@ -1050,6 +1062,7 @@ export default function ArenaPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

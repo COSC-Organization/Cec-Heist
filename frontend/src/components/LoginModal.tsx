@@ -244,7 +244,7 @@ export default function LoginModal() {
         <form onSubmit={handleSubmit} className="cyber-form modal-custom-form">
           <div className="form-group">
             <label htmlFor="team-id-input" className="form-label">
-              TEAM ID
+              EMAIL / TEAM ID
             </label>
             <div className="input-wrapper">
               <input
@@ -252,8 +252,8 @@ export default function LoginModal() {
                 ref={teamInputRef}
                 type="text"
                 value={teamId}
-                onChange={(e) => setTeamId(e.target.value.toUpperCase())}
-                placeholder="ENTER TEAM ID"
+                onChange={(e) => setTeamId(e.target.value)}
+                placeholder="user@test.com or SQUAD_NAME"
                 className="cyber-input"
                 autoComplete="off"
                 spellCheck={false}

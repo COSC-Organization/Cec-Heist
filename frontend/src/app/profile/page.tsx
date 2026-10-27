@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
 import { useAuth } from "../../context/AuthContext";
+import AuthGuard from "../../components/AuthGuard";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -139,9 +140,15 @@ export default function ProfilePage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
-  const { user, isLoggedIn, logout, openLoginModal } = useAuth();
+  const { user, isLoggedIn, logout, openLoginModal, refreshTeamData } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      refreshTeamData();
+    }
+  }, [isLoggedIn, user?.id, refreshTeamData]);
 
   const isActuallyLoggedIn = Boolean(isLoggedIn && user);
   const currentTeamName = user?.teamName || "";
@@ -183,12 +190,20 @@ export default function ProfilePage() {
 
     if (href === "/arena") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/arena");
+        return;
+      }
       triggerTransition("/arena", "left-to-right");
       return;
     }
 
     if (href === "/leaderboard") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/leaderboard");
+        return;
+      }
       triggerTransition("/leaderboard", "left-to-right");
       return;
     }
@@ -219,7 +234,8 @@ export default function ProfilePage() {
   }, []);
 
   return (
-    <main className="crt-screen profile-screen">
+    <AuthGuard sectorName="SQUAD DOSSIER">
+      <main className="crt-screen profile-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
       <div className="scanlines-overlay" />
 
@@ -445,6 +461,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

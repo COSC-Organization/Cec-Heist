@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
+import { api } from "@/lib/api";
 import {
   LockIcon,
   EyeIcon,
@@ -133,32 +134,25 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const [currentTimeStr, setCurrentTimeStr] = useState<string>("");
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const validateEmail = (val: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  };
-
-  const handleQuickAutofill = () => {
-    playCyberClick();
-    setEmail("admin@cecheist.internal");
-    setPassword("MasterPass2026!");
-    setError(null);
+  const validateIdentifier = (val: string) => {
+    return val.trim().length >= 3;
   };
 
   // Trigger login transition:
-  // Existing left wheel animates with sound, page slides out to the left
-  const handleSubmit = (e: React.FormEvent) => {
+  // Connects directly to backend POST /api/auth/login and requires role === 'admin'
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     playCyberClick();
     setError(null);
 
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
-      setError("AUTHENTICATION ERROR: Admin identity / email is required.");
+      setError("AUTHENTICATION ERROR: Admin identity / username is required.");
       return;
     }
 
-    if (!validateEmail(trimmedEmail)) {
-      setError("VALIDATION FAILED: Invalid security email format (e.g., admin@cec.com).");
+    if (!validateIdentifier(trimmedEmail)) {
+      setError("VALIDATION FAILED: Admin identity must be at least 3 characters.");
       return;
     }
 
@@ -167,24 +161,40 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    if (password.length < 4) {
-      setError("VALIDATION FAILED: Passcode must be at least 4 characters.");
-      return;
-    }
+    try {
+      const loginRes = await api.auth.login(trimmedEmail, password);
 
-    // Play original website vault sound (mechanical roll + 14 gear clicks)
-    playVaultTransitionSound("right-to-left");
-    setAuthenticatedUser(trimmedEmail);
-    setCurrentTimeStr(new Date().toISOString());
-    setTransitionPhase("sliding-to-auth");
-
-    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
-    transitionTimeoutRef.current = setTimeout(() => {
-      setTransitionPhase("authenticated");
-      if (onLoginSuccess) {
-        onLoginSuccess(trimmedEmail);
+      if (loginRes.user.role !== "admin") {
+        setError("ACCESS DENIED // ADMIN COMMAND CLEARANCE REQUIRED");
+        return;
       }
-    }, 1120);
+
+      // Play original website vault sound (mechanical roll + 14 gear clicks)
+      playVaultTransitionSound("right-to-left");
+      setAuthenticatedUser(trimmedEmail);
+      setCurrentTimeStr(new Date().toISOString());
+      setTransitionPhase("sliding-to-auth");
+
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = setTimeout(() => {
+        setTransitionPhase("authenticated");
+        if (onLoginSuccess) {
+          onLoginSuccess(trimmedEmail);
+        }
+      }, 1120);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        msg.toLowerCase().includes("invalid email or password") ||
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("401")
+      ) {
+        setError("AUTHENTICATION FAILED: Invalid admin email or passcode.");
+        return;
+      }
+
+      setError(`AUTHENTICATION FAILED: ${msg}`);
+    }
   };
 
   // Return to Login with reverse slide animation & sound
@@ -277,24 +287,24 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
 
                 {/* Login Form */}
                 <form onSubmit={handleSubmit} className="admin-login-form">
-                  {/* Email Input */}
+                  {/* Username / Email Input */}
                   <div className="admin-form-group">
                     <label htmlFor="admin-email" className="admin-form-label">
                       <TerminalIcon className="w-4 h-4 text-white flex-shrink-0" />
-                      <span>Admin Identity / Email</span>
+                      <span>Admin ID / Username</span>
                     </label>
                     <div className="admin-input-wrapper">
                       <input
                         id="admin-email"
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           if (error) setError(null);
                         }}
-                        placeholder="commander@cecheist.internal"
+                        placeholder="coscadmin"
                         className="admin-text-input"
-                        autoComplete="email"
+                        autoComplete="username"
                         disabled={transitionPhase !== "idle"}
                         spellCheck={false}
                       />
@@ -359,14 +369,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                       <span className="bracket">[</span>
                       <ScrambleText text="ACCESS SYSTEM" />
                       <span className="bracket">]</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleQuickAutofill}
-                      className="admin-autofill-btn"
-                    >
-                      [⚡ Demo Quick-Fill Credentials]
                     </button>
                   </div>
                 </form>
