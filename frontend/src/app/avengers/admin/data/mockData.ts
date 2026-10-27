@@ -25,6 +25,8 @@ export interface Team {
   registrationStatus: "VERIFIED" | "PENDING" | "FLAGGED";
   lastActive: string;
   rank: number;
+  organization?: string;
+  passcode?: string;
 }
 
 export interface Challenge {
