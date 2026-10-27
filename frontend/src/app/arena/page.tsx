@@ -337,7 +337,9 @@ export default function ArenaPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const loadCustomChallenges = () => {
-        const saved = localStorage.getItem("cec_heist_challenges");
+        const saved =
+          localStorage.getItem("cec_heist_challenges_v3") ||
+          localStorage.getItem("cec_heist_challenges");
         if (saved) {
           try {
             const parsed = JSON.parse(saved);

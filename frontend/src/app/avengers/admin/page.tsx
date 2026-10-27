@@ -34,11 +34,20 @@ export default function AdminPage() {
   const [teams] = useState<Team[]>(INITIAL_TEAMS);
   const [challenges, setChallenges] = useState<Challenge[]>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cec_heist_challenges");
-      if (saved) {
+      const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
+      if (savedV3) {
         try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          const parsed = JSON.parse(savedV3);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+      }
+      const oldSaved = localStorage.getItem("cec_heist_challenges");
+      if (oldSaved) {
+        try {
+          const parsed = JSON.parse(oldSaved);
+          if (Array.isArray(parsed) && parsed.some((c: any) => c.id?.startsWith("CHAL-0"))) {
+            localStorage.removeItem("cec_heist_challenges");
+          }
         } catch {}
       }
     }
@@ -48,7 +57,7 @@ export default function AdminPage() {
   // Sync challenges with localStorage and cross-tab updates
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "cec_heist_challenges" && e.newValue) {
+      if ((e.key === "cec_heist_challenges_v3" || e.key === "cec_heist_challenges") && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) setChallenges(parsed);
@@ -70,6 +79,7 @@ export default function AdminPage() {
     setChallenges((prev) => {
       const next = [newChallenge, ...prev];
       if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
         localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
       }
       return next;
@@ -80,6 +90,7 @@ export default function AdminPage() {
     setChallenges((prev) => {
       const next = prev.map((c) => (c.id === updated.id ? updated : c));
       if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
         localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
       }
       return next;
@@ -90,6 +101,7 @@ export default function AdminPage() {
     setChallenges((prev) => {
       const next = prev.filter((c) => c.id !== id);
       if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
         localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
       }
       return next;

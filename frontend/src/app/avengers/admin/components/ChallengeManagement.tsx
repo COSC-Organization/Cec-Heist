@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
-import { Challenge, ActivityLog } from "../data/mockData";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import {
+  Challenge,
+  ActivityLog,
+  LEVEL_POINTS_CONFIG,
+  TOTAL_COMPETITION_POINTS,
+} from "../data/mockData";
 import { ConfirmationModal } from "./ConfirmationModal";
 import {
   FlagIcon,
@@ -13,6 +18,9 @@ import {
   CloseIcon,
   TrophyIcon,
   ActivityIcon,
+  SettingsIcon,
+  PlusIcon,
+  ExternalLinkIcon,
 } from "./CyberIcons";
 
 interface ChallengeManagementProps {
@@ -26,32 +34,7 @@ interface ChallengeManagementProps {
 }
 
 const CATEGORIES = ["WEB", "FORENSICS", "CRYPTO", "REVERSE", "MISC"] as const;
-const LEVELS = ["All", "1", "2", "3", "4", "5"] as const;
-
-// Red retro pixel demon/skull icon from user's image
-export const PixelBugBountyIcon: React.FC<{ className?: string }> = ({
-  className = "w-6 h-6",
-}) => (
-  <svg
-    viewBox="0 0 16 16"
-    className={className}
-    style={{ imageRendering: "pixelated", shapeRendering: "crispEdges" }}
-  >
-    <rect x="2" y="1" width="2" height="3" fill="#e11d48" />
-    <rect x="12" y="1" width="2" height="3" fill="#e11d48" />
-    <rect x="3" y="3" width="10" height="2" fill="#e11d48" />
-    <rect x="1" y="5" width="14" height="6" fill="#e11d48" />
-    <rect x="4" y="6" width="2" height="2" fill="#000000" />
-    <rect x="10" y="6" width="2" height="2" fill="#000000" />
-    <rect x="3" y="9" width="2" height="2" fill="#e11d48" />
-    <rect x="5" y="10" width="6" height="2" fill="#000000" />
-    <rect x="6" y="10" width="1" height="1" fill="#e11d48" />
-    <rect x="9" y="10" width="1" height="1" fill="#e11d48" />
-    <rect x="11" y="9" width="2" height="2" fill="#e11d48" />
-    <rect x="2" y="11" width="3" height="3" fill="#e11d48" />
-    <rect x="11" y="11" width="3" height="3" fill="#e11d48" />
-  </svg>
-);
+const LEVELS = [1, 2, 3, 4] as const;
 
 export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   challenges,
@@ -62,42 +45,66 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
 }) => {
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  // Form State (Image 1)
+  // Form State
   const [formTitle, setFormTitle] = useState("");
   const [formCategory, setFormCategory] = useState<string>("WEB");
-  const [formPoints, setFormPoints] = useState<number>(100);
   const [formLevel, setFormLevel] = useState<number>(1);
+  const [formPoints, setFormPoints] = useState<number>(LEVEL_POINTS_CONFIG[1]);
   const [formDescription, setFormDescription] = useState("");
   const [formFlag, setFormFlag] = useState("");
   const [formClueLink, setFormClueLink] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Editing state (if editing a challenge, holds its reference)
+  // Editing / Deleting state
   const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
   const [deletingChallenge, setDeletingChallenge] = useState<Challenge | null>(null);
 
-  // Search & Filters State (Image 2)
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>("All");
 
-  // Stats calculation
+  // Track if user manually modified points
+  const [pointsManuallyEdited, setPointsManuallyEdited] = useState(false);
+
+  // Level-specific points allocations
+  const levelAllocations = useMemo(() => {
+    const acc = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    challenges.forEach((c) => {
+      const lvl = (c.level >= 1 && c.level <= 4 ? c.level : 1) as 1 | 2 | 3 | 4;
+      acc[lvl] = (acc[lvl] || 0) + (c.points || 0);
+    });
+    return acc;
+  }, [challenges]);
+
   const totalPoints = useMemo(
     () => challenges.reduce((sum, c) => sum + (c.points || 0), 0),
     [challenges]
   );
+
   const activeCount = useMemo(
     () => challenges.filter((c) => c.isActive !== false).length,
     [challenges]
   );
+
   const haltedCount = useMemo(
     () => challenges.filter((c) => c.isActive === false).length,
     [challenges]
   );
 
-  // Filtered challenges list for Table (Image 2)
+  // When Level changes in form, auto-suggest level default points if not manually overridden
+  const handleLevelChange = (newLevel: number) => {
+    setFormLevel(newLevel);
+    if (!pointsManuallyEdited && !editingChallenge) {
+      const defaultPts =
+        LEVEL_POINTS_CONFIG[newLevel as keyof typeof LEVEL_POINTS_CONFIG] || 100;
+      setFormPoints(defaultPts);
+    }
+  };
+
+  // Filtered challenges list for Table
   const filteredChallenges = useMemo(() => {
     return challenges.filter((c) => {
       const matchSearch =
@@ -122,7 +129,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     });
   }, [challenges, searchQuery, selectedCategory, selectedLevel, selectedActiveFilter]);
 
-  // Handle Form Submission: INITIALIZE CHALLENGE
+  // Handle Form Submission: INITIALIZE / UPDATE CHALLENGE
   const handleSubmitChallenge = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -131,7 +138,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     const trimmedDesc = formDescription.trim();
     const trimmedFlag = formFlag.trim();
     const cleanPoints = Number(formPoints);
-    const cleanLevel = Math.max(1, Math.min(5, Number(formLevel) || 1));
+    const cleanLevel = Math.max(1, Math.min(4, Number(formLevel) || 1));
 
     if (!trimmedTitle) {
       setFormError("Challenge TITLE is required.");
@@ -142,7 +149,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       return;
     }
     if (!trimmedFlag) {
-      setFormError("FLAG (SECRET) is required (e.g. CTF{...}).");
+      setFormError("FLAG (SECRET) is required (e.g. CTF{...} or FLAG{...}).");
       return;
     }
     if (cleanPoints <= 0) {
@@ -171,7 +178,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
         id: `LOG-EDIT-${Date.now()}`,
         timestamp,
         type: "challenge_add",
-        message: `Challenge '${trimmedTitle}' [Level ${cleanLevel}] updated.`,
+        message: `Challenge '${trimmedTitle}' [Level ${cleanLevel}] updated [${cleanPoints} PTS].`,
       });
       setSuccessToast(`CHALLENGE '${trimmedTitle}' UPDATED SUCCESSFULLY.`);
       setEditingChallenge(null);
@@ -204,11 +211,12 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     // Reset form fields
     setFormTitle("");
     setFormCategory("WEB");
-    setFormPoints(100);
     setFormLevel(1);
+    setFormPoints(LEVEL_POINTS_CONFIG[1]);
     setFormDescription("");
     setFormFlag("");
     setFormClueLink("");
+    setPointsManuallyEdited(false);
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
@@ -222,6 +230,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     setFormDescription(c.description || "");
     setFormFlag(c.flag || "");
     setFormClueLink(c.clueLink || "");
+    setPointsManuallyEdited(true);
     setFormError(null);
 
     // Scroll smoothly to form
@@ -235,11 +244,12 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     setEditingChallenge(null);
     setFormTitle("");
     setFormCategory("WEB");
-    setFormPoints(100);
     setFormLevel(1);
+    setFormPoints(LEVEL_POINTS_CONFIG[1]);
     setFormDescription("");
     setFormFlag("");
     setFormClueLink("");
+    setPointsManuallyEdited(false);
     setFormError(null);
   };
 
@@ -254,11 +264,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     onUpdateChallenge(updated);
     onAddLog({
       id: `LOG-TOGGLE-${c.id}-${nextActive ? "ACTIVE" : "HALTED"}`,
-      timestamp: "AUTO",
+      timestamp: new Date().toTimeString().split(" ")[0],
       type: "challenge_add",
       message: `Challenge '${c.title}' is now [${nextActive ? "ACTIVE" : "HALTED"}].`,
     });
-    setSuccessToast(`Challenge '${c.title}' set to ${nextActive ? "ACTIVE" : "HALTED"}.`);
+    setSuccessToast(`Challenge '${c.title}' status toggled to [${nextActive ? "ACTIVE" : "HALTED"}].`);
     setTimeout(() => setSuccessToast(null), 3000);
   };
 
@@ -268,40 +278,23 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     onDeleteChallenge(deletingChallenge.id);
     onAddLog({
       id: `LOG-DEL-${deletingChallenge.id}`,
-      timestamp: "AUTO",
+      timestamp: new Date().toTimeString().split(" ")[0],
       type: "challenge_add",
       message: `Challenge '${deletingChallenge.title}' deleted from challenge pool.`,
     });
-    setSuccessToast(`CHALLENGE '${deletingChallenge.title}' DELETED.`);
+    setSuccessToast(`CHALLENGE '${deletingChallenge.title}' PURGED.`);
     setDeletingChallenge(null);
     setTimeout(() => setSuccessToast(null), 3000);
   };
 
-  // Category Badge Colors matching Image 2
-  const getCategoryBadgeClass = (category?: string) => {
-    const cat = category?.toUpperCase() || "WEB";
-    switch (cat) {
-      case "WEB":
-        return "bounty-badge-web";
-      case "FORENSICS":
-        return "bounty-badge-forensics";
-      case "CRYPTO":
-        return "bounty-badge-crypto";
-      case "REVERSE":
-        return "bounty-badge-reverse";
-      default:
-        return "bounty-badge-misc";
-    }
-  };
-
   return (
-    <div className="bug-bounty-page-container">
+    <div className="cec-challenges-root">
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deletingChallenge !== null}
-        title="DELETE CHALLENGE"
-        message={`Are you sure you want to permanently delete '${deletingChallenge?.title}'? Points and question configuration will be removed from the matrix.`}
-        confirmLabel="Delete"
+        title="PURGE CHALLENGE VECTOR"
+        message={`Are you sure you want to permanently delete '${deletingChallenge?.title}'? All allotted points (${deletingChallenge?.points || 0} PTS) and question parameters will be removed from the matrix.`}
+        confirmLabel="PURGE QUESTION"
         type="danger"
         onConfirm={handleConfirmDelete}
         onClose={() => setDeletingChallenge(null)}
@@ -309,61 +302,124 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
 
       {/* Success Notification Alert */}
       {successToast && (
-        <div className="bounty-alert bounty-alert-success">
+        <div className="cec-cyber-alert alert-success">
           <CheckIcon className="w-5 h-5 text-green" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* SECTION 1: DEPLOY / INITIALIZE NEW CHALLENGE (EXACT IMAGE 1)  */}
+      {/* SECTION 1: LEVEL POINTS ALLOCATION MATRIX (1,000 PTS TOTAL)    */}
       {/* ============================================================== */}
-      <div ref={formRef} className="bounty-form-card">
-        {/* Header with Red Pixel Icon & BUG BOUNTY */}
-        <div className="bounty-form-header">
-          <div className="bounty-header-left">
-            <PixelBugBountyIcon className="w-7 h-7 text-crimson" />
-            <span className="bounty-title-red">BUG BOUNTY</span>
+      <div className="cec-matrix-hud cyber-corners">
+        <div className="hud-header-bar">
+          <div className="hud-header-left">
+            <span className="hud-matrix-tag">{"// ARENA SCORING ARCHITECTURE"}</span>
+            <h2 className="hud-matrix-title">1,000 PTS COMPETITION MATRIX POOL</h2>
           </div>
-          <span className="bounty-subtitle-gray">
-            {editingChallenge ? `// MODIFY CHALLENGE: ${editingChallenge.id}` : "Deploy New Challenge"}
+          <div className="hud-header-right">
+            <span className="hud-total-pill">
+              TOTAL ALLOCATED: <strong className="text-cyan">{totalPoints}</strong> / {TOTAL_COMPETITION_POINTS} PTS
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Level Progress Cards */}
+        <div className="hud-levels-grid">
+          {LEVELS.map((lvl) => {
+            const maxPts = LEVEL_POINTS_CONFIG[lvl];
+            const currentPts = levelAllocations[lvl] || 0;
+            const chalCount = challenges.filter((c) => (c.level || 1) === lvl).length;
+            const pct = Math.min(100, Math.round((currentPts / maxPts) * 100));
+            const isFull = currentPts >= maxPts;
+
+            return (
+              <div key={lvl} className={`hud-level-card ${isFull ? "level-card-full" : ""}`}>
+                <div className="level-card-head">
+                  <span className="level-badge-tag">LEVEL 0{lvl}</span>
+                  <span className="level-pts-label">
+                    <strong className="text-white">{currentPts}</strong> / {maxPts} PTS
+                  </span>
+                </div>
+
+                <div className="level-progress-track">
+                  <div
+                    className={`level-progress-bar level-${lvl}-fill`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+
+                <div className="level-card-meta">
+                  <span className="level-count">{chalCount} {chalCount === 1 ? "Question" : "Questions"}</span>
+                  <span className="level-status-pill">
+                    {currentPts === 0
+                      ? "UNALLOCATED"
+                      : currentPts === maxPts
+                      ? "COMPLETED (100%)"
+                      : currentPts > maxPts
+                      ? `OVER BY +${currentPts - maxPts} PTS`
+                      : `${maxPts - currentPts} PTS REMAINING`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* SECTION 2: INITIALIZE / DEPLOY CHALLENGE FORM                  */}
+      {/* ============================================================== */}
+      <div ref={formRef} className="cec-panel-card cyber-corners">
+        <div className="cec-panel-header">
+          <div className="panel-title-wrap">
+            <FlagIcon className="w-5 h-5 text-cyan" />
+            <h3 className="cec-panel-title">
+              {editingChallenge
+                ? `[ ~ ] MODIFY CHALLENGE VECTOR: ${editingChallenge.id}`
+                : "[ + ] DEPLOY CHALLENGE VECTOR"}
+            </h3>
+          </div>
+          <span className="panel-subtitle-tag">
+            {"// PROTOCOL: QUESTION REGISTRATION & INGESTION"}
           </span>
         </div>
 
         {formError && (
-          <div className="bounty-alert bounty-alert-error">
+          <div className="cec-cyber-alert alert-error">
             <span>⚠️ {formError}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmitChallenge} className="bounty-form-body">
+        <form onSubmit={handleSubmitChallenge} className="cec-form-container">
           {/* TITLE */}
-          <div className="bounty-form-group">
-            <label htmlFor="bounty-title" className="bounty-label">
-              TITLE
+          <div className="form-group-full">
+            <label htmlFor="cec-chal-title" className="cec-field-label">
+              QUESTION TITLE <span className="text-red">*</span>
             </label>
             <input
-              id="bounty-title"
+              id="cec-chal-title"
               type="text"
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
-              placeholder="Enter challenge question title..."
+              placeholder="e.g. Hidden in plain sight, Buffer Overflow Exploit, RSA Keygen..."
               required
-              className="bounty-input"
+              className="cec-terminal-input"
             />
           </div>
 
-          {/* CATEGORY & POINTS (2 Columns) */}
-          <div className="bounty-grid-2">
-            <div className="bounty-form-group">
-              <label htmlFor="bounty-category" className="bounty-label">
-                CATEGORY
+          {/* ROW 1: CATEGORY, LEVEL, POINTS (3-Column Layout) */}
+          <div className="form-grid-3">
+            {/* CATEGORY */}
+            <div className="form-group">
+              <label htmlFor="cec-chal-category" className="cec-field-label">
+                CATEGORY <span className="text-red">*</span>
               </label>
               <select
-                id="bounty-category"
+                id="cec-chal-category"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                className="bounty-select"
+                className="cec-terminal-select"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -373,104 +429,114 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               </select>
             </div>
 
-            <div className="bounty-form-group">
-              <label htmlFor="bounty-points" className="bounty-label">
-                POINTS
+            {/* LEVEL (1 to 4 with auto point presets) */}
+            <div className="form-group">
+              <label htmlFor="cec-chal-level" className="cec-field-label">
+                LEVEL (TARGET POOL) <span className="text-red">*</span>
+              </label>
+              <select
+                id="cec-chal-level"
+                value={formLevel}
+                onChange={(e) => handleLevelChange(Number(e.target.value))}
+                className="cec-terminal-select"
+              >
+                <option value={1}>LEVEL 1 [200 PTS MAX POOL]</option>
+                <option value={2}>LEVEL 2 [100 PTS MAX POOL]</option>
+                <option value={3}>LEVEL 3 [250 PTS MAX POOL]</option>
+                <option value={4}>LEVEL 4 [450 PTS MAX POOL]</option>
+              </select>
+            </div>
+
+            {/* POINTS */}
+            <div className="form-group">
+              <label htmlFor="cec-chal-points" className="cec-field-label">
+                POINTS ALLOTTED <span className="text-red">*</span>
               </label>
               <input
-                id="bounty-points"
+                id="cec-chal-points"
                 type="number"
                 min={1}
-                step={1}
+                step={5}
                 value={formPoints}
-                onChange={(e) => setFormPoints(Number(e.target.value))}
+                onChange={(e) => {
+                  setFormPoints(Number(e.target.value));
+                  setPointsManuallyEdited(true);
+                }}
                 required
-                className="bounty-input"
+                className="cec-terminal-input"
               />
+              <span className="field-hint-text">
+                Level 0{formLevel} pool: {levelAllocations[formLevel as 1 | 2 | 3 | 4] || 0} /{" "}
+                {LEVEL_POINTS_CONFIG[formLevel as keyof typeof LEVEL_POINTS_CONFIG]} PTS
+              </span>
             </div>
           </div>
 
-          {/* LEVEL (Track ID and Batch ID REMOVED as instructed) */}
-          <div className="bounty-form-group">
-            <label htmlFor="bounty-level" className="bounty-label">
-              LEVEL
-            </label>
-            <input
-              id="bounty-level"
-              type="number"
-              min={1}
-              max={5}
-              value={formLevel}
-              onChange={(e) => setFormLevel(Number(e.target.value))}
-              placeholder="1, 2,3,4 or 5"
-              required
-              className="bounty-input"
-            />
-            <span className="bounty-helper-text">Challenge level (1 to 5)</span>
-          </div>
-
           {/* DESCRIPTION */}
-          <div className="bounty-form-group">
-            <label htmlFor="bounty-desc" className="bounty-label">
-              DESCRIPTION
+          <div className="form-group-full">
+            <label htmlFor="cec-chal-desc" className="cec-field-label">
+              QUESTION DESCRIPTION &amp; MISSION BRIEF <span className="text-red">*</span>
             </label>
             <textarea
-              id="bounty-desc"
-              rows={5}
+              id="cec-chal-desc"
+              rows={4}
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
-              placeholder="Type question description, mission objective, and vulnerability parameters..."
+              placeholder="Provide mission background, exploit scenario, hints, and vulnerability parameters for operatives..."
               required
-              className="bounty-input bounty-textarea"
+              className="cec-terminal-textarea"
             />
           </div>
 
-          {/* FLAG (SECRET) */}
-          <div className="bounty-form-group">
-            <label htmlFor="bounty-flag" className="bounty-label">
-              FLAG (SECRET)
-            </label>
-            <input
-              id="bounty-flag"
-              type="text"
-              value={formFlag}
-              onChange={(e) => setFormFlag(e.target.value)}
-              placeholder="CTF{...}"
-              required
-              className="bounty-input bounty-flag-input"
-              autoComplete="off"
-              spellCheck={false}
-            />
+          {/* ROW 2: FLAG (SECRET) & CLUE LINK (2-Column Layout) */}
+          <div className="form-grid-2">
+            {/* FLAG (SECRET) */}
+            <div className="form-group">
+              <label htmlFor="cec-chal-flag" className="cec-field-label">
+                FLAG (SECRET) <span className="text-red">*</span>
+              </label>
+              <input
+                id="cec-chal-flag"
+                type="text"
+                value={formFlag}
+                onChange={(e) => setFormFlag(e.target.value)}
+                placeholder="CTF{s3cr3t_fl4g_h3r3} or FLAG{...}"
+                required
+                className="cec-terminal-input flag-input-code"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+
+            {/* CLUE LINK / MEDIA (OPTIONAL) */}
+            <div className="form-group">
+              <label htmlFor="cec-chal-clue" className="cec-field-label">
+                CLUE LINK / MEDIA (OPTIONAL)
+              </label>
+              <input
+                id="cec-chal-clue"
+                type="text"
+                value={formClueLink}
+                onChange={(e) => setFormClueLink(e.target.value)}
+                placeholder="https://example.com/asset.pdf or drive/raw link"
+                className="cec-terminal-input"
+              />
+              <span className="field-hint-text">Optional external clue, downloadable binary, or intel URL</span>
+            </div>
           </div>
 
-          {/* CLUE LINK (OPTIONAL) / MEDIA */}
-          <div className="bounty-form-group">
-            <label htmlFor="bounty-clue" className="bounty-label">
-              CLUE LINK / MEDIA (OPTIONAL)
-            </label>
-            <input
-              id="bounty-clue"
-              type="text"
-              value={formClueLink}
-              onChange={(e) => setFormClueLink(e.target.value)}
-              placeholder="https://example.com/clue"
-              className="bounty-input"
-            />
-            <span className="bounty-helper-text">Optional hint/clue URL or media link</span>
-          </div>
-
-          {/* BIG RED ACTION BUTTON (IMAGE 1) */}
-          <div className="bounty-action-row">
-            <button type="submit" className="bounty-submit-red-btn">
-              {editingChallenge ? "SAVE MODIFICATIONS" : "INITIALIZE CHALLENGE"}
+          {/* ACTION BUTTON ROW */}
+          <div className="form-action-row">
+            <button type="submit" className="arena-enter-btn cec-submit-btn">
+              {editingChallenge ? "[ SAVE MODIFICATIONS ]" : "[ INITIALIZE CHALLENGE ]"}
             </button>
             {editingChallenge && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="bounty-cancel-btn"
+                className="cec-cancel-btn"
               >
-                CANCEL EDIT
+                [ CANCEL EDIT ]
               </button>
             )}
           </div>
@@ -478,48 +544,47 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 2: ALL CHALLENGES TABLE (EXACT IMAGE 2)                */}
+      {/* SECTION 3: ALL CHALLENGES TABLE / REPOSITORY                   */}
       {/* ============================================================== */}
-      <div className="bounty-table-card">
-        {/* Table Header with Red Pixel Icon & Navigation Links */}
-        <div className="bounty-table-header">
-          <div className="bounty-header-left">
-            <PixelBugBountyIcon className="w-6 h-6 text-crimson" />
-            <h2 className="bounty-table-title">ALL CHALLENGES</h2>
-            <span className="bounty-count-pill">{challenges.length} QUESTIONS</span>
+      <div className="cec-panel-card cyber-corners">
+        {/* Table Panel Header */}
+        <div className="cec-panel-header">
+          <div className="panel-title-wrap">
+            <ActivityIcon className="w-5 h-5 text-cyan" />
+            <h3 className="cec-panel-title">CHALLENGE VECTOR REPOSITORY</h3>
+            <span className="cec-count-badge">{challenges.length} QUESTIONS</span>
           </div>
 
-          {/* Mini Nav / Stats Strip */}
-          <div className="bounty-nav-strip">
-            <span className="bounty-nav-item active">// CHALLENGES</span>
-            <span className="bounty-nav-item">
-              // ACTIVE: <b className="text-green">{activeCount}</b>
+          {/* Quick Telemetry Indicators */}
+          <div className="cec-telemetry-strip">
+            <span className="telemetry-item">
+              // ACTIVE: <strong className="text-green">{activeCount}</strong>
             </span>
-            <span className="bounty-nav-item">
-              // HALTED: <b className="text-yellow">{haltedCount}</b>
+            <span className="telemetry-item">
+              // HALTED: <strong className="text-yellow">{haltedCount}</strong>
             </span>
-            <span className="bounty-nav-item">
-              // TOTAL PTS: <b className="text-crimson">{totalPoints}</b>
+            <span className="telemetry-item">
+              // POOL: <strong className="text-cyan">{totalPoints}</strong> / 1,000 PTS
             </span>
           </div>
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="bounty-filter-bar">
-          <div className="bounty-search-box">
+        <div className="cec-filter-bar">
+          <div className="cec-search-box">
             <SearchIcon className="w-4 h-4 text-gray" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search title, description, flag..."
-              className="bounty-search-input"
+              placeholder="Search by title, description, flag secret..."
+              className="cec-search-input"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="bounty-clear-search"
+                className="cec-clear-search-btn"
                 aria-label="Clear search"
               >
                 <CloseIcon />
@@ -527,13 +592,14 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             )}
           </div>
 
-          <div className="bounty-filters-inline">
-            <div className="bounty-filter-item">
+          <div className="cec-filters-wrap">
+            {/* Category Filter */}
+            <div className="filter-select-group">
               <FilterIcon className="w-3.5 h-3.5 text-gray" />
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bounty-filter-select"
+                className="cec-filter-select"
               >
                 <option value="All">All Categories</option>
                 {CATEGORIES.map((c) => (
@@ -544,25 +610,28 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               </select>
             </div>
 
-            <div className="bounty-filter-item">
+            {/* Level Filter */}
+            <div className="filter-select-group">
               <select
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                className="bounty-filter-select"
+                className="cec-filter-select"
               >
+                <option value="All">All Levels</option>
                 {LEVELS.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {lvl === "All" ? "All Levels" : `Level ${lvl}`}
+                  <option key={lvl} value={String(lvl)}>
+                    Level 0{lvl} ({LEVEL_POINTS_CONFIG[lvl]} PTS)
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="bounty-filter-item">
+            {/* Status Filter */}
+            <div className="filter-select-group">
               <select
                 value={selectedActiveFilter}
                 onChange={(e) => setSelectedActiveFilter(e.target.value)}
-                className="bounty-filter-select"
+                className="cec-filter-select"
               >
                 <option value="All">All Statuses</option>
                 <option value="ACTIVE">Active Only</option>
@@ -572,60 +641,91 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
           </div>
         </div>
 
-        {/* Table Content (Columns: LEVEL, TITLE, CATEGORY, POINTS, CLUE LINK, ACTIVE, ACTIONS) */}
-        <div className="bounty-table-wrapper">
-          <table className="bounty-data-table">
+        {/* Challenges Table Content */}
+        <div className="cec-table-responsive">
+          <table className="cec-data-table">
             <thead>
               <tr>
-                <th style={{ width: "70px", textAlign: "center" }}>LEVEL</th>
-                <th style={{ minWidth: "260px" }}>TITLE</th>
+                <th style={{ width: "90px", textAlign: "center" }}>LEVEL</th>
+                <th style={{ minWidth: "280px" }}>TITLE &amp; BRIEFING</th>
                 <th style={{ width: "120px", textAlign: "center" }}>CATEGORY</th>
-                <th style={{ width: "80px", textAlign: "center" }}>POINTS</th>
+                <th style={{ width: "100px", textAlign: "center" }}>POINTS</th>
                 <th style={{ width: "120px", textAlign: "center" }}>CLUE LINK</th>
-                <th style={{ width: "90px", textAlign: "center" }}>ACTIVE</th>
-                <th style={{ width: "210px", textAlign: "center" }}>ACTIONS</th>
+                <th style={{ width: "100px", textAlign: "center" }}>ACTIVE</th>
+                <th style={{ width: "230px", textAlign: "center" }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
-              {filteredChallenges.length === 0 ? (
+              {challenges.length === 0 ? (
+                /* Authentic Zero-Question Empty State */
                 <tr>
-                  <td colSpan={7} className="bounty-empty-cell">
-                    {"// NO CHALLENGES MATCH YOUR SEARCH QUERY"}
+                  <td colSpan={7} className="cec-empty-state-cell">
+                    <div className="empty-state-terminal">
+                      <div className="terminal-prompt-line">
+                        <span className="text-cyan">&gt; [SYSTEM: ARENA CHALLENGE REGISTRY EMPTY]</span>
+                      </div>
+                      <p className="empty-main-text">
+                        ZERO QUESTIONS CURRENTLY REGISTERED IN THE COMPETITION MATRIX.
+                      </p>
+                      <p className="empty-sub-text">
+                        The entire 1,000 PTS competition pool is ready for allocation.
+                        Use the <strong>[ + ] DEPLOY CHALLENGE VECTOR</strong> form above to deploy questions for Level 1 (200 PTS), Level 2 (100 PTS), Level 3 (250 PTS), and Level 4 (450 PTS).
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredChallenges.length === 0 ? (
+                /* Search No Results State */
+                <tr>
+                  <td colSpan={7} className="cec-empty-state-cell">
+                    <div className="empty-state-terminal">
+                      <p className="empty-main-text">
+                        // NO CHALLENGES MATCH YOUR SEARCH / FILTER CRITERIA
+                      </p>
+                      <p className="empty-sub-text">
+                        Try resetting the category, level, or search keyword filters.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredChallenges.map((c) => {
                   const isActive = c.isActive !== false;
+                  const lvl = c.level || 1;
 
                   return (
-                    <tr key={c.id} className="bounty-table-row">
+                    <tr key={c.id} className="cec-table-row">
                       {/* LEVEL */}
-                      <td className="bounty-cell-level">
-                        <span>{c.level || 1}</span>
+                      <td style={{ textAlign: "center" }}>
+                        <span className={`cec-level-pill lvl-${lvl}`}>
+                          LVL 0{lvl}
+                        </span>
                       </td>
 
-                      {/* TITLE (Title bold on top, description underneath) */}
-                      <td className="bounty-cell-title">
-                        <div className="bounty-title-text">{c.title}</div>
-                        <div className="bounty-desc-text">{c.description}</div>
+                      {/* TITLE & BRIEFING */}
+                      <td className="cell-challenge-title">
+                        <div className="chal-primary-title">{c.title}</div>
+                        <div className="chal-brief-text">{c.description}</div>
                         {c.flag && (
-                          <div className="bounty-flag-preview">
-                            <span className="flag-tag-label">FLAG:</span>
+                          <div className="chal-flag-chip">
+                            <span className="flag-label">FLAG:</span>
                             <code>{c.flag}</code>
                           </div>
                         )}
                       </td>
 
-                      {/* CATEGORY (Colored Badge) */}
+                      {/* CATEGORY */}
                       <td style={{ textAlign: "center" }}>
-                        <span className={`bounty-cat-badge ${getCategoryBadgeClass(c.category)}`}>
+                        <span className={`cec-category-badge cat-${(c.category || "WEB").toLowerCase()}`}>
                           {c.category?.toUpperCase() || "WEB"}
                         </span>
                       </td>
 
                       {/* POINTS */}
-                      <td className="bounty-cell-points">
-                        <span>{c.points}</span>
+                      <td style={{ textAlign: "center" }}>
+                        <span className="chal-points-badge">
+                          <strong>{c.points}</strong> PTS
+                        </span>
                       </td>
 
                       {/* CLUE LINK */}
@@ -635,35 +735,36 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                             href={c.clueLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bounty-clue-link"
+                            className="cec-clue-link"
                           >
-                            View Link
+                            <span>Link</span>
+                            <ExternalLinkIcon className="w-3.5 h-3.5 inline ml-1" />
                           </a>
                         ) : (
-                          <span className="bounty-clue-none">-</span>
+                          <span className="cec-clue-none">—</span>
                         )}
                       </td>
 
-                      {/* ACTIVE TOGGLE BUTTON */}
+                      {/* ACTIVE STATUS TOGGLE */}
                       <td style={{ textAlign: "center" }}>
                         <button
                           type="button"
                           onClick={() => handleToggleActive(c)}
-                          className={`bounty-active-pill ${isActive ? "active-yes" : "active-halted"}`}
+                          className={`cec-active-toggle-btn ${isActive ? "is-active" : "is-halted"}`}
                           title={`Click to ${isActive ? "HALT" : "ACTIVATE"} challenge`}
                         >
                           {isActive ? "YES" : "HALTED"}
                         </button>
                       </td>
 
-                      {/* ACTIONS: MAKE ACTIVE, HALT, EDIT, DELETE */}
+                      {/* ACTIONS: EDIT, HALT / ACTIVATE, DELETE */}
                       <td style={{ textAlign: "center" }}>
-                        <div className="bounty-actions-group">
+                        <div className="cec-actions-flex">
                           {/* EDIT BUTTON */}
                           <button
                             type="button"
                             onClick={() => handleStartEdit(c)}
-                            className="bounty-action-btn edit-btn"
+                            className="cec-action-btn btn-edit"
                             title="Edit this challenge question"
                           >
                             <EditIcon className="w-3.5 h-3.5" />
@@ -674,20 +775,21 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                           <button
                             type="button"
                             onClick={() => handleToggleActive(c)}
-                            className={`bounty-action-btn ${isActive ? "halt-btn" : "activate-btn"}`}
-                            title={isActive ? "Halt challenge from competition" : "Activate challenge"}
+                            className={`cec-action-btn ${isActive ? "btn-halt" : "btn-activate"}`}
+                            title={isActive ? "Halt challenge from arena" : "Activate challenge in arena"}
                           >
                             <span>{isActive ? "Halt" : "Activate"}</span>
                           </button>
 
-                          {/* DELETE BUTTON (RED RECTANGULAR BUTTON MATCHING IMAGE 2) */}
+                          {/* DELETE BUTTON */}
                           <button
                             type="button"
                             onClick={() => setDeletingChallenge(c)}
-                            className="bounty-delete-btn"
-                            title="Delete challenge"
+                            className="cec-action-btn btn-delete"
+                            title="Purge challenge permanently"
                           >
-                            Delete
+                            <TrashIcon className="w-3.5 h-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       </td>
