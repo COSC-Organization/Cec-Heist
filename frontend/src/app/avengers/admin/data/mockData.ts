@@ -25,6 +25,8 @@ export interface Team {
   registrationStatus: "VERIFIED" | "PENDING" | "FLAGGED";
   lastActive: string;
   rank: number;
+  organization?: string;
+  passcode?: string;
 }
 
 export interface Challenge {
@@ -74,144 +76,7 @@ export const INITIAL_EVENT_CONFIG: EventConfig = {
   totalChallenges: 0,
 };
 
-export const INITIAL_TEAMS: Team[] = [
-  {
-    id: "TM-001",
-    name: "ZERO_DAY_SYNDICATE",
-    members: [
-      { name: "Alex Mercer", email: "alex@zeroday.io", role: "Captain" },
-      { name: "Elena Rostova", email: "elena@zeroday.io", role: "Operative" },
-      { name: "Kaelen Voss", email: "kael@zeroday.io", role: "Operative" },
-    ],
-    score: 850,
-    solvedCount: 14,
-    registrationStatus: "VERIFIED",
-    lastActive: "2 mins ago",
-    rank: 1,
-  },
-  {
-    id: "TM-002",
-    name: "BYTE_BANDITS",
-    members: [
-      { name: "Marcus Shaw", email: "marcus@bytebandits.net", role: "Captain" },
-      { name: "Samantha Cross", email: "sam@bytebandits.net", role: "Operative" },
-      { name: "Devon Reed", email: "devon@bytebandits.net", role: "Operative" },
-    ],
-    score: 720,
-    solvedCount: 12,
-    registrationStatus: "VERIFIED",
-    lastActive: "6 mins ago",
-    rank: 2,
-  },
-  {
-    id: "TM-003",
-    name: "RED_TEAM_SIX",
-    members: [
-      { name: "Jax Thorne", email: "jax@redteam6.sec", role: "Captain" },
-      { name: "Nadia Belova", email: "nadia@redteam6.sec", role: "Operative" },
-      { name: "Tariq Mansour", email: "tariq@redteam6.sec", role: "Operative" },
-    ],
-    score: 380,
-    solvedCount: 11,
-    registrationStatus: "VERIFIED",
-    lastActive: "14 mins ago",
-    rank: 3,
-  },
-  {
-    id: "TM-004",
-    name: "PHANTOM_NODE",
-    members: [
-      { name: "Viktor Gray", email: "viktor@phantom.cc", role: "Captain" },
-      { name: "Chloe Bennett", email: "chloe@phantom.cc", role: "Operative" },
-      { name: "Rohan Patel", email: "rohan@phantom.cc", role: "Operative" },
-    ],
-    score: 550,
-    solvedCount: 9,
-    registrationStatus: "VERIFIED",
-    lastActive: "25 mins ago",
-    rank: 4,
-  },
-  {
-    id: "TM-005",
-    name: "KRONOS_PROTOCOL",
-    members: [
-      { name: "Soren Lind", email: "soren@kronos.tech", role: "Captain" },
-      { name: "Aria Sterling", email: "aria@kronos.tech", role: "Operative" },
-      { name: "Kenji Sato", email: "kenji@kronos.tech", role: "Operative" },
-    ],
-    score: 450,
-    solvedCount: 8,
-    registrationStatus: "VERIFIED",
-    lastActive: "38 mins ago",
-    rank: 5,
-  },
-  {
-    id: "TM-006",
-    name: "NEO_MATRIX_CREW",
-    members: [
-      { name: "Thomas Anderson", email: "neo@matrix.org", role: "Captain" },
-      { name: "Trinity Bell", email: "trinity@matrix.org", role: "Operative" },
-      { name: "Morpheus King", email: "morpheus@matrix.org", role: "Operative" },
-    ],
-    score: 650,
-    solvedCount: 7,
-    registrationStatus: "VERIFIED",
-    lastActive: "45 mins ago",
-    rank: 6,
-  },
-  {
-    id: "TM-007",
-    name: "CYBER_VIPERS",
-    members: [
-      { name: "Viper One", email: "lead@vipers.net", role: "Captain" },
-      { name: "Fang Wu", email: "fang@vipers.net", role: "Operative" },
-    ],
-    score: 290,
-    solvedCount: 6,
-    registrationStatus: "VERIFIED",
-    lastActive: "1 hour ago",
-    rank: 7,
-  },
-  {
-    id: "TM-008",
-    name: "QUANTUM_HEIST",
-    members: [
-      { name: "Dr. Paul Dirac", email: "dirac@qheist.io", role: "Captain" },
-      { name: "Lisa Randall", email: "lisa@qheist.io", role: "Operative" },
-    ],
-    score: 200,
-    solvedCount: 5,
-    registrationStatus: "PENDING",
-    lastActive: "1 hour ago",
-    rank: 8,
-  },
-  {
-    id: "TM-009",
-    name: "DARK_SOLARIS",
-    members: [
-      { name: "Solaris Prime", email: "prime@solaris.org", role: "Captain" },
-      { name: "Nova Flare", email: "nova@solaris.org", role: "Operative" },
-    ],
-    score: 120,
-    solvedCount: 5,
-    registrationStatus: "VERIFIED",
-    lastActive: "2 hours ago",
-    rank: 9,
-  },
-  {
-    id: "TM-010",
-    name: "VECTOR_CORPS",
-    members: [
-      { name: "Vector Lead", email: "lead@vectorcorps.io", role: "Captain" },
-      { name: "Dot Product", email: "dot@vectorcorps.io", role: "Operative" },
-    ],
-    score: 50,
-    solvedCount: 4,
-    registrationStatus: "VERIFIED",
-    lastActive: "2 hours ago",
-    rank: 10,
-  },
-];
+export const INITIAL_TEAMS: Team[] = [];
 
 export const INITIAL_CHALLENGES: Challenge[] = [];
 
