@@ -4,7 +4,6 @@ export interface EventConfig {
   name: string;
   edition: string;
   status: "NOT STARTED" | "LIVE" | "ENDED";
-  isPublished: boolean;
   startTime: string;
   endTime: string;
   totalPoints: number;
@@ -31,12 +30,20 @@ export interface Team {
 export interface Challenge {
   id: string;
   title: string;
-  category: "Web Exploitation" | "Cryptography" | "Forensics" | "Reverse Engineering";
-  difficulty: "Easy" | "Medium" | "Hard" | "Insane";
+  category: "WEB" | "FORENSICS" | "CRYPTO" | "REVERSE" | "MISC" | string;
+  level: number;
+  difficulty?: "Easy" | "Medium" | "Hard" | "Insane";
+  flag: string;
+  clueLink?: string;
+  isActive: boolean;
   points: number;
   description: string;
   status: "Draft" | "Published" | "Archived";
   solves: number;
+  facilityId?: "factory" | "logistics" | "command" | "vault";
+
+  hint?: string;
+  pic?: string;
 }
 
 export interface ActivityLog {
@@ -48,15 +55,23 @@ export interface ActivityLog {
   points?: number;
 }
 
+export const LEVEL_POINTS_CONFIG = {
+  1: 200,
+  2: 100,
+  3: 250,
+  4: 450,
+} as const;
+
+export const TOTAL_COMPETITION_POINTS = 1000;
+
 export const INITIAL_EVENT_CONFIG: EventConfig = {
   name: "CEC HEIST",
   edition: "2K26",
   status: "LIVE",
-  isPublished: true,
   startTime: "2026-10-14T09:00:00Z",
   endTime: "2026-10-15T21:00:00Z",
-  totalPoints: 124500,
-  totalChallenges: 16,
+  totalPoints: 1000,
+  totalChallenges: 0,
 };
 
 export const INITIAL_TEAMS: Team[] = [
@@ -68,7 +83,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Elena Rostova", email: "elena@zeroday.io", role: "Operative" },
       { name: "Kaelen Voss", email: "kael@zeroday.io", role: "Operative" },
     ],
-    score: 15420,
+    score: 850,
     solvedCount: 14,
     registrationStatus: "VERIFIED",
     lastActive: "2 mins ago",
@@ -82,7 +97,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Samantha Cross", email: "sam@bytebandits.net", role: "Operative" },
       { name: "Devon Reed", email: "devon@bytebandits.net", role: "Operative" },
     ],
-    score: 13200,
+    score: 720,
     solvedCount: 12,
     registrationStatus: "VERIFIED",
     lastActive: "6 mins ago",
@@ -96,7 +111,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Nadia Belova", email: "nadia@redteam6.sec", role: "Operative" },
       { name: "Tariq Mansour", email: "tariq@redteam6.sec", role: "Operative" },
     ],
-    score: 11850,
+    score: 380,
     solvedCount: 11,
     registrationStatus: "VERIFIED",
     lastActive: "14 mins ago",
@@ -110,7 +125,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Chloe Bennett", email: "chloe@phantom.cc", role: "Operative" },
       { name: "Rohan Patel", email: "rohan@phantom.cc", role: "Operative" },
     ],
-    score: 9940,
+    score: 550,
     solvedCount: 9,
     registrationStatus: "VERIFIED",
     lastActive: "25 mins ago",
@@ -124,7 +139,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Aria Sterling", email: "aria@kronos.tech", role: "Operative" },
       { name: "Kenji Sato", email: "kenji@kronos.tech", role: "Operative" },
     ],
-    score: 8650,
+    score: 450,
     solvedCount: 8,
     registrationStatus: "VERIFIED",
     lastActive: "38 mins ago",
@@ -138,7 +153,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Trinity Bell", email: "trinity@matrix.org", role: "Operative" },
       { name: "Morpheus King", email: "morpheus@matrix.org", role: "Operative" },
     ],
-    score: 7420,
+    score: 650,
     solvedCount: 7,
     registrationStatus: "VERIFIED",
     lastActive: "45 mins ago",
@@ -151,7 +166,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Viper One", email: "lead@vipers.net", role: "Captain" },
       { name: "Fang Wu", email: "fang@vipers.net", role: "Operative" },
     ],
-    score: 6810,
+    score: 290,
     solvedCount: 6,
     registrationStatus: "VERIFIED",
     lastActive: "1 hour ago",
@@ -164,7 +179,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Dr. Paul Dirac", email: "dirac@qheist.io", role: "Captain" },
       { name: "Lisa Randall", email: "lisa@qheist.io", role: "Operative" },
     ],
-    score: 5920,
+    score: 200,
     solvedCount: 5,
     registrationStatus: "PENDING",
     lastActive: "1 hour ago",
@@ -177,7 +192,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Solaris Prime", email: "prime@solaris.org", role: "Captain" },
       { name: "Nova Flare", email: "nova@solaris.org", role: "Operative" },
     ],
-    score: 5180,
+    score: 120,
     solvedCount: 5,
     registrationStatus: "VERIFIED",
     lastActive: "2 hours ago",
@@ -190,7 +205,7 @@ export const INITIAL_TEAMS: Team[] = [
       { name: "Vector Lead", email: "lead@vectorcorps.io", role: "Captain" },
       { name: "Dot Product", email: "dot@vectorcorps.io", role: "Operative" },
     ],
-    score: 4620,
+    score: 50,
     solvedCount: 4,
     registrationStatus: "VERIFIED",
     lastActive: "2 hours ago",
@@ -198,159 +213,19 @@ export const INITIAL_TEAMS: Team[] = [
   },
 ];
 
-export const INITIAL_CHALLENGES: Challenge[] = [
-  {
-    id: "WEB-01",
-    title: "SQL Injection Gateway",
-    category: "Web Exploitation",
-    difficulty: "Easy",
-    points: 200,
-    description: "Bypass the refinery authentication portal using a blind boolean SQL injection vulnerability.",
-    status: "Published",
-    solves: 42,
-  },
-  {
-    id: "WEB-02",
-    title: "JWT Key Forgery",
-    category: "Web Exploitation",
-    difficulty: "Medium",
-    points: 400,
-    description: "Forge an admin JSON Web Token by exploiting algorithm confusion between RS256 and HS256.",
-    status: "Published",
-    solves: 24,
-  },
-  {
-    id: "WEB-03",
-    title: "SSRF Internal Metadata",
-    category: "Web Exploitation",
-    difficulty: "Hard",
-    points: 750,
-    description: "Chain Server-Side Request Forgery through a PDF invoice generator to extract cloud metadata tokens.",
-    status: "Published",
-    solves: 11,
-  },
-  {
-    id: "WEB-04",
-    title: "Prototype Pollution RCE",
-    category: "Web Exploitation",
-    difficulty: "Insane",
-    points: 1000,
-    description: "Pollute the Object prototype in the Node.js backend to achieve remote command execution.",
-    status: "Published",
-    solves: 3,
-  },
-  {
-    id: "CRYPTO-01",
-    title: "Classic Substitution Matrix",
-    category: "Cryptography",
-    difficulty: "Easy",
-    points: 150,
-    description: "Analyze letter frequency in an intercepted diplomatic cable to reconstruct the polyalphabetic key.",
-    status: "Published",
-    solves: 51,
-  },
-  {
-    id: "CRYPTO-02",
-    title: "Padding Oracle Attack",
-    category: "Cryptography",
-    difficulty: "Medium",
-    points: 500,
-    description: "Exploit PKCS#7 CBC padding leakage to decrypt military telemetry without knowing the AES key.",
-    status: "Published",
-    solves: 18,
-  },
-  {
-    id: "CRYPTO-03",
-    title: "Broken RSA Common Modulus",
-    category: "Cryptography",
-    difficulty: "Hard",
-    points: 800,
-    description: "Recover the private key when two different public exponents share an identical RSA modulus N.",
-    status: "Published",
-    solves: 8,
-  },
-  {
-    id: "FOR-01",
-    title: "Memory Dump Volatility",
-    category: "Forensics",
-    difficulty: "Medium",
-    points: 450,
-    description: "Analyze a 4GB Windows memory dump to extract suspicious process trees and injected DLLs.",
-    status: "Published",
-    solves: 29,
-  },
-  {
-    id: "FOR-02",
-    title: "PCAP Packet Infiltration",
-    category: "Forensics",
-    difficulty: "Hard",
-    points: 700,
-    description: "Reconstruct exfiltrated data concealed within DNS TXT queries in an encrypted network capture.",
-    status: "Published",
-    solves: 14,
-  },
-  {
-    id: "REV-01",
-    title: "Obfuscated Binary Keygen",
-    category: "Reverse Engineering",
-    difficulty: "Medium",
-    points: 550,
-    description: "Decompile an x86-64 ELF binary and extract the cryptographic algorithm to build a working keygen.",
-    status: "Published",
-    solves: 16,
-  },
-  {
-    id: "REV-02",
-    title: "Firmware Bootloader Bypass",
-    category: "Reverse Engineering",
-    difficulty: "Insane",
-    points: 1200,
-    description: "Reverse engineer an ARM Cortex-M micro-controller firmware to bypass signature checks.",
-    status: "Published",
-    solves: 2,
-  },
-];
+export const INITIAL_CHALLENGES: Challenge[] = [];
 
 export const INITIAL_LOGS: ActivityLog[] = [
   {
     id: "LOG-001",
-    timestamp: "20:12:45",
-    type: "flag_solved",
-    message: "Solved challenge 'SQL Injection Gateway' [+200 pts]",
-    teamName: "ZERO_DAY_SYNDICATE",
-    points: 200,
+    timestamp: "12:00:00",
+    type: "system_alert",
+    message: "CEC HEIST 2K26 Competition Matrix Online [1,000 PTS Pool]",
   },
   {
     id: "LOG-002",
-    timestamp: "20:09:18",
-    type: "flag_solved",
-    message: "Solved challenge 'JWT Key Forgery' [+400 pts]",
-    teamName: "BYTE_BANDITS",
-    points: 400,
-  },
-  {
-    id: "LOG-003",
-    timestamp: "19:54:30",
-    type: "team_register",
-    message: "Squad registered: VECTOR_CORPS (2 operatives)",
-    teamName: "VECTOR_CORPS",
-  },
-  {
-    id: "LOG-004",
-    timestamp: "19:41:02",
-    type: "system_alert",
-    message: "Arena load balancer health check: All sectors operational [0 latency anomalies]",
-  },
-  {
-    id: "LOG-005",
-    timestamp: "19:22:15",
-    type: "challenge_add",
-    message: "New challenge deployed: 'Firmware Bootloader Bypass' [1200 pts]",
-  },
-  {
-    id: "LOG-006",
-    timestamp: "19:00:00",
+    timestamp: "12:01:00",
     type: "event_status",
-    message: "Competition state updated to LIVE by Commander Admin",
+    message: "Level 1-4 Challenge Vectors Ready for Deployment",
   },
 ];

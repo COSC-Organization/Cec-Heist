@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./admin.css";
 
 import { AdminLogin } from "./components/AdminLogin";
 import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
+import { ChallengeManagement } from "./components/ChallengeManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 
@@ -31,21 +32,90 @@ export default function AdminPage() {
 
   // Core Datasets
   const [teams] = useState<Team[]>(INITIAL_TEAMS);
-  const [challenges] = useState<Challenge[]>(INITIAL_CHALLENGES);
+  const [challenges, setChallenges] = useState<Challenge[]>(() => {
+    if (typeof window !== "undefined") {
+      const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
+      if (savedV3) {
+        try {
+          const parsed = JSON.parse(savedV3);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+      }
+      const oldSaved = localStorage.getItem("cec_heist_challenges");
+      if (oldSaved) {
+        try {
+          const parsed = JSON.parse(oldSaved);
+          if (Array.isArray(parsed) && parsed.some((c: any) => c.id?.startsWith("CHAL-0"))) {
+            localStorage.removeItem("cec_heist_challenges");
+          }
+        } catch {}
+      }
+    }
+    return INITIAL_CHALLENGES;
+  });
+
+  // Sync challenges with localStorage and cross-tab updates
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if ((e.key === "cec_heist_challenges_v3" || e.key === "cec_heist_challenges") && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setChallenges(parsed);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
+  const [isDeployModalRequested, setIsDeployModalRequested] = useState<boolean>(false);
 
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  // Quick modals placeholder (will connect with Feature 2 & 3)
+  const handleAddChallenge = (newChallenge: Challenge) => {
+    setChallenges((prev) => {
+      const next = [newChallenge, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const handleUpdateChallenge = (updated: Challenge) => {
+    setChallenges((prev) => {
+      const next = prev.map((c) => (c.id === updated.id ? updated : c));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteChallenge = (id: string) => {
+    setChallenges((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_challenges_v3", JSON.stringify(next));
+        localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  // Quick modals
   const handleOpenAddTeam = () => {
     setActiveTab("teams");
   };
 
   const handleOpenAddChallenge = () => {
     setActiveTab("challenges");
+    setIsDeployModalRequested(true);
   };
 
   // Auth Handlers
@@ -116,8 +186,22 @@ export default function AdminPage() {
           />
         )}
 
+        {activeTab === "challenges" && (
+          <ChallengeManagement
+            challenges={challenges}
+            onAddChallenge={handleAddChallenge}
+            onUpdateChallenge={handleUpdateChallenge}
+            onDeleteChallenge={handleDeleteChallenge}
+            onAddLog={handleAddLog}
+            initialDeployModalOpen={isDeployModalRequested}
+            onCloseInitialDeployModal={() => setIsDeployModalRequested(false)}
+          />
+        )}
+
         {/* Feature Placeholders ready to build next */}
-        {activeTab !== "overview" && activeTab !== "event-controls" && (
+        {activeTab !== "overview" &&
+          activeTab !== "event-controls" &&
+          activeTab !== "challenges" && (
           <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
             <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
               MODULE STANDBY: {activeTab.toUpperCase()}

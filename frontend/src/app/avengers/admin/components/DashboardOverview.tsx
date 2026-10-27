@@ -34,7 +34,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const totalOperatives = teams.reduce((acc, team) => acc + team.members.length, 0);
   const totalPoints = challenges.reduce((acc, c) => acc + c.points, 0);
-  const totalSolves = challenges.reduce((acc, c) => acc + c.solves, 0);
+  const totalSolves = challenges.reduce((acc, c) => acc + (c.solves || 0), 0);
   const topTeams = [...teams].sort((a, b) => b.score - a.score).slice(0, 5);
 
   return (
@@ -170,10 +170,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <span className="info-val">CEC HEIST 2K26</span>
               </div>
               <div className="info-row">
-                <span className="info-key">PUBLIC PORTAL:</span>
-                <span className="info-val">
-                  {eventConfig.isPublished ? "PUBLISHED / OPEN" : "RESTRICTED / HIDDEN"}
-                </span>
+                <span className="info-key">MAX POOL:</span>
+                <span className="info-val text-green">{eventConfig.totalPoints.toLocaleString()} PTS</span>
               </div>
               <div className="info-row">
                 <span className="info-key">START TIME:</span>
