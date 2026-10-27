@@ -2,7 +2,6 @@
 import { eq } from 'drizzle-orm'
 import { createDb } from '../db'
 import { teams } from '../db/schema/teams'
-import { users } from '../db/schema/users'
 import { getUnlockedLevel } from '../services/level-unlock.service'
 import type { AppContext } from '../types'
 
@@ -21,24 +20,10 @@ export async function getTeamLevelStatus(c: AppContext) {
 
   // Regular users can access only their own team's status.
   if (authUser.role === 'user') {
-    const [user] = await db
-      .select({
-        teamId: users.teamId,
-      })
-      .from(users)
-      .where(eq(users.id, Number(authUser.id)))
-      .limit(1)
-
-    if (!user) {
+    const userTeamId = authUser.teamId ?? Number(authUser.id)
+    if (userTeamId !== requestedTeamId) {
       return c.json(
-        { success: false, message: 'User not found' },
-        404,
-      )
-    }
-
-    if (user.teamId === null || user.teamId !== requestedTeamId) {
-      return c.json(
-        { success: false, message: 'You cannot access another team\'s status' },
+        { success: false, message: "You cannot access another team's status" },
         403,
       )
     }

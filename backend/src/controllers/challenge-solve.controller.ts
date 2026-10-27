@@ -3,7 +3,6 @@ import { and, eq } from 'drizzle-orm'
 import { createDb } from '../db'
 import { challenges } from '../db/schema/challenges'
 import { teams } from '../db/schema/teams'
-import { users } from '../db/schema/users'
 import { teamChallengeAssignments } from '../db/schema/team-challenge-assignments'
 import { teamChallengeSolves } from '../db/schema/team-challenge-solves'
 import type { AppContext } from '../types'
@@ -38,39 +37,24 @@ export async function submitChallengeFlag(c: AppContext) {
     )
   }
 
-  // Get the authenticated user from the verified JWT.
+  // Get the authenticated team from the verified JWT.
   const authUser = c.get('user')
 
-  // Resolve the user's team from the database, not from client input.
-  const [user] = await db
-    .select({
-      id: users.id,
-      teamId: users.teamId,
-      role: users.role,
-    })
-    .from(users)
-    .where(eq(users.id, Number(authUser.id)))
-    .limit(1)
-
-  if (!user) {
-    return c.json({ success: false, message: 'User not found' }, 404)
-  }
-
-  if (user.role !== 'user') {
+  if (authUser.role !== 'user') {
     return c.json(
-      { success: false, message: 'A team account is required' },
+      { success: false, message: 'A team account is required to submit flags' },
       403,
     )
   }
 
-  if (user.teamId === null) {
+  const teamId = authUser.teamId ?? Number(authUser.id)
+
+  if (!Number.isSafeInteger(teamId) || teamId <= 0) {
     return c.json(
-      { success: false, message: 'No team is associated with this account' },
+      { success: false, message: 'No valid team is associated with this account' },
       403,
     )
   }
-
-  const teamId = user.teamId
 
   // Verify that the challenge is assigned to this team.
   const [assignment] = await db
