@@ -7,7 +7,20 @@ export type CloudflareBindings = {
   FRONTEND_ORIGIN: string
 }
 
-export type AppContext = Context<{ Bindings: CloudflareBindings }>
+export type AuthUser = {
+  id: string
+  email: string
+  role: 'user' | 'admin'
+}
+
+export type AppVariables = {
+  user: AuthUser
+}
+
+export type AppContext = Context<{
+  Bindings: CloudflareBindings
+  Variables: AppVariables
+}>
 
 export type Team = {
   id: number
