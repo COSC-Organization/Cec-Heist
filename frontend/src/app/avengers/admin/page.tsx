@@ -8,6 +8,7 @@ import { AdminLayout } from "./components/AdminLayout";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { EventControls } from "./components/EventControls";
 import { ChallengeManagement } from "./components/ChallengeManagement";
+import { TeamManagement } from "./components/TeamManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
 
@@ -31,7 +32,18 @@ export default function AdminPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
   // Core Datasets
-  const [teams] = useState<Team[]>(INITIAL_TEAMS);
+  const [teams, setTeams] = useState<Team[]>(() => {
+    if (typeof window !== "undefined") {
+      const savedTeams = localStorage.getItem("cec_heist_teams_v1");
+      if (savedTeams) {
+        try {
+          const parsed = JSON.parse(savedTeams);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
+      }
+    }
+    return INITIAL_TEAMS;
+  });
   const [challenges, setChallenges] = useState<Challenge[]>(() => {
     if (typeof window !== "undefined") {
       const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
@@ -54,13 +66,19 @@ export default function AdminPage() {
     return INITIAL_CHALLENGES;
   });
 
-  // Sync challenges with localStorage and cross-tab updates
+  // Sync challenges and teams with localStorage and cross-tab updates
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if ((e.key === "cec_heist_challenges_v3" || e.key === "cec_heist_challenges") && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) setChallenges(parsed);
+        } catch {}
+      }
+      if (e.key === "cec_heist_teams_v1" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setTeams(parsed);
         } catch {}
       }
     };
@@ -105,6 +123,89 @@ export default function AdminPage() {
         localStorage.setItem("cec_heist_challenges", JSON.stringify(next));
       }
       return next;
+    });
+  };
+
+  // Squad / Team Handlers
+  const handleAddTeam = (newTeam: Team) => {
+    setTeams((prev) => {
+      const next = [newTeam, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Squad ${newTeam.name} enlisted into tournament roster`,
+    });
+  };
+
+  const handleAddTeams = (newTeams: Team[]) => {
+    setTeams((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const toAdd = newTeams.filter((t) => !existingIds.has(t.id));
+      const next = [...toAdd, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Batch ingested ${newTeams.length} squads via bulk spreadsheet upload`,
+    });
+  };
+
+  const handleUpdateTeam = (updated: Team) => {
+    setTeams((prev) => {
+      const next = prev.map((t) => (t.id === updated.id ? updated : t));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "team_register",
+      message: `Squad profile updated for ${updated.name}`,
+    });
+  };
+
+  const handleDeleteTeam = (id: string) => {
+    setTeams((prev) => {
+      const deleted = prev.find((t) => t.id === id);
+      const next = prev.filter((t) => t.id !== id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cec_heist_teams_v1", JSON.stringify(next));
+      }
+      if (deleted) {
+        handleAddLog({
+          id: `LOG-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "system_alert",
+          message: `Squad ${deleted.name} (${id}) revoked from tournament`,
+        });
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteAllTeams = () => {
+    setTeams([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cec_heist_teams_v1");
+    }
+    handleAddLog({
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toTimeString().split(" ")[0],
+      type: "system_alert",
+      message: "Squad roster purged. All team registrations cleared.",
     });
   };
 
@@ -199,9 +300,21 @@ export default function AdminPage() {
         )}
 
         {/* Feature Placeholders ready to build next */}
+        {activeTab === "teams" && (
+          <TeamManagement
+            teams={teams}
+            onAddTeam={handleAddTeam}
+            onAddTeams={handleAddTeams}
+            onUpdateTeam={handleUpdateTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onDeleteAllTeams={handleDeleteAllTeams}
+            onAddLog={handleAddLog}
+          />
+        )}
         {activeTab !== "overview" &&
           activeTab !== "event-controls" &&
-          activeTab !== "challenges" && (
+          activeTab !== "challenges" &&
+          activeTab !== "teams" && (
           <div className="overview-panel cyber-corners" style={{ padding: "3rem", textAlign: "center" }}>
             <h3 className="overview-title" style={{ fontSize: "1.4rem" }}>
               MODULE STANDBY: {activeTab.toUpperCase()}
