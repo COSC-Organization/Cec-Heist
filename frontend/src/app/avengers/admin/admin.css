@@ -3156,6 +3156,24 @@
   border: 1px solid rgba(251, 113, 133, 0.35);
 }
 
+.cec-category-badge.cat-easy {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.cec-category-badge.cat-medium {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.cec-category-badge.cat-high {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
 /* Points Badge */
 .chal-points-badge {
   color: #00f3ff;

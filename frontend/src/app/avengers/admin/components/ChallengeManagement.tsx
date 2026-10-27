@@ -7,6 +7,7 @@ import {
   LEVEL_POINTS_CONFIG,
   TOTAL_COMPETITION_POINTS,
 } from "../data/mockData";
+import { api } from "@/lib/api";
 import { ConfirmationModal } from "./ConfirmationModal";
 import {
   FlagIcon,
@@ -30,8 +31,13 @@ interface ChallengeManagementProps {
   onCloseInitialDeployModal?: () => void;
 }
 
-const CATEGORIES = ["WEB", "FORENSICS", "CRYPTO", "REVERSE", "MISC"] as const;
 const LEVELS = [1, 2, 3, 4] as const;
+type DifficultyType = "easy" | "medium" | "high";
+const DIFFICULTY_POINTS: Record<DifficultyType, number> = {
+  easy: 10,
+  medium: 20,
+  high: 30,
+};
 
 export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   challenges,
@@ -44,14 +50,14 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
 
   // Form State
   const [formTitle, setFormTitle] = useState("");
-  const [formCategory, setFormCategory] = useState<string>("WEB");
   const [formLevel, setFormLevel] = useState<number>(1);
-  const [formPoints, setFormPoints] = useState<number | string>(100);
+  const [formDifficulty, setFormDifficulty] = useState<DifficultyType>("easy");
   const [formDescription, setFormDescription] = useState("");
   const [formFlag, setFormFlag] = useState("");
   const [formClueLink, setFormClueLink] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Editing / Deleting state
   const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
@@ -59,12 +65,9 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
   const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>("All");
-
-  // Track if user manually modified points
-  const [pointsManuallyEdited, setPointsManuallyEdited] = useState(false);
 
   // Level-specific points allocations across all existing challenges
   const levelAllocations = useMemo(() => {
@@ -75,24 +78,6 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     });
     return acc;
   }, [challenges]);
-
-  // Current level capacity tracking for the active form level (excluding edited challenge if any)
-  const currentLevelExistingPoints = useMemo(() => {
-    return challenges
-      .filter((c) => (c.level || 1) === formLevel && c.id !== editingChallenge?.id)
-      .reduce((sum, c) => sum + (c.points || 0), 0);
-  }, [challenges, formLevel, editingChallenge]);
-
-  const maxPointsForFormLevel =
-    LEVEL_POINTS_CONFIG[formLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
-
-  const remainingPointsForFormLevel = Math.max(
-    0,
-    maxPointsForFormLevel - currentLevelExistingPoints
-  );
-
-  const numericPoints = typeof formPoints === "string" ? parseInt(formPoints, 10) || 0 : formPoints;
-  const isOverAllocating = numericPoints > remainingPointsForFormLevel;
 
   const totalPoints = useMemo(
     () => challenges.reduce((sum, c) => sum + (c.points || 0), 0),
@@ -109,24 +94,6 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     [challenges]
   );
 
-  // When Level changes in form, recalculate available allowance
-  const handleLevelChange = (newLevel: number) => {
-    setFormLevel(newLevel);
-    setFormError(null);
-    const maxLvl = LEVEL_POINTS_CONFIG[newLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
-    const existing = challenges
-      .filter((c) => (c.level || 1) === newLevel && c.id !== editingChallenge?.id)
-      .reduce((sum, c) => sum + (c.points || 0), 0);
-    const rem = Math.max(0, maxLvl - existing);
-
-    // If remaining is > 0 and points not manually locked, suggest remaining or a reasonable starting value
-    if (!pointsManuallyEdited && !editingChallenge) {
-      setFormPoints(rem > 0 ? (rem >= 100 ? 100 : rem) : 0);
-    } else if (typeof formPoints === "number" && formPoints > rem) {
-      setFormPoints(rem);
-    }
-  };
-
   // Filtered challenges list for Table
   const filteredChallenges = useMemo(() => {
     return challenges.filter((c) => {
@@ -136,9 +103,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
         c.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.flag && c.flag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchCat =
-        selectedCategory === "All" ||
-        c.category?.toUpperCase() === selectedCategory.toUpperCase();
+      const matchDiff =
+        selectedDifficulty === "All" ||
+        (c.difficulty && c.difficulty.toLowerCase() === selectedDifficulty.toLowerCase()) ||
+        (c.category && c.category.toLowerCase() === selectedDifficulty.toLowerCase());
 
       const matchLvl =
         selectedLevel === "All" || String(c.level) === selectedLevel;
@@ -148,20 +116,21 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
         (selectedActiveFilter === "ACTIVE" && c.isActive !== false) ||
         (selectedActiveFilter === "HALTED" && c.isActive === false);
 
-      return matchSearch && matchCat && matchLvl && matchActive;
+      return matchSearch && matchDiff && matchLvl && matchActive;
     });
-  }, [challenges, searchQuery, selectedCategory, selectedLevel, selectedActiveFilter]);
+  }, [challenges, searchQuery, selectedDifficulty, selectedLevel, selectedActiveFilter]);
 
   // Handle Form Submission: INITIALIZE / UPDATE CHALLENGE
-  const handleSubmitChallenge = (e: React.FormEvent) => {
+  const handleSubmitChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
     const trimmedTitle = formTitle.trim();
     const trimmedDesc = formDescription.trim();
     const trimmedFlag = formFlag.trim();
-    const cleanPoints = typeof formPoints === "string" ? parseInt(formPoints, 10) : formPoints;
     const cleanLevel = Math.max(1, Math.min(4, Number(formLevel) || 1));
+    const cleanDifficulty = formDifficulty;
+    const cleanHintUrl = formClueLink.trim() || undefined;
 
     if (!trimmedTitle) {
       setFormError("Challenge TITLE is required.");
@@ -175,111 +144,94 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       setFormError("FLAG (SECRET) is required (e.g. CTF{...} or FLAG{...}).");
       return;
     }
-    if (isNaN(cleanPoints) || cleanPoints <= 0) {
-      setFormError("POINTS allocated must be a positive number greater than 0.");
-      return;
-    }
 
-    // Strict Level Points Cap Validation
-    const maxLevelPts = LEVEL_POINTS_CONFIG[cleanLevel as keyof typeof LEVEL_POINTS_CONFIG] || 200;
-    const existingLevelPts = challenges
-      .filter((c) => (c.level || 1) === cleanLevel && c.id !== editingChallenge?.id)
-      .reduce((sum, c) => sum + (c.points || 0), 0);
-
-    const remainingForLevel = maxLevelPts - existingLevelPts;
-
-    if (cleanPoints > remainingForLevel) {
-      if (remainingForLevel <= 0) {
-        setFormError(
-          `Level 0${cleanLevel} has already reached its maximum set limit of ${maxLevelPts} PTS. No further points can be allocated to this level.`
-        );
+    setIsSubmitting(true);
+    try {
+      if (editingChallenge) {
+        const pts = DIFFICULTY_POINTS[cleanDifficulty];
+        const updated: Challenge = {
+          ...editingChallenge,
+          title: trimmedTitle,
+          category: cleanDifficulty.toUpperCase(),
+          points: pts,
+          level: cleanLevel,
+          difficulty: (cleanDifficulty.charAt(0).toUpperCase() + cleanDifficulty.slice(1)) as "Easy" | "Medium" | "Hard",
+          description: trimmedDesc,
+          flag: trimmedFlag,
+          clueLink: cleanHintUrl,
+          isActive: editingChallenge.isActive ?? true,
+          status: editingChallenge.isActive ? "Published" : "Draft",
+        };
+        onUpdateChallenge(updated);
+        onAddLog({
+          id: `LOG-EDIT-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "challenge_add",
+          message: `Challenge '${trimmedTitle}' [Level ${cleanLevel} - ${cleanDifficulty.toUpperCase()}] updated.`,
+        });
+        setSuccessToast(`CHALLENGE '${trimmedTitle}' UPDATED SUCCESSFULLY.`);
+        setEditingChallenge(null);
       } else {
-        setFormError(
-          `Cannot allocate ${cleanPoints} PTS. Level 0${cleanLevel} has only ${remainingForLevel} PTS remaining to stay within its maximum limit of ${maxLevelPts} PTS (Currently allocated: ${existingLevelPts} PTS).`
-        );
+        const res = await api.challenges.create({
+          title: trimmedTitle,
+          description: trimmedDesc,
+          flag: trimmedFlag,
+          level: cleanLevel,
+          difficulty: cleanDifficulty,
+          hintUrl: cleanHintUrl,
+        });
+
+        const pts = DIFFICULTY_POINTS[cleanDifficulty];
+        const newChal: Challenge = {
+          id: String(res.data.id),
+          title: res.data.title,
+          category: cleanDifficulty.toUpperCase(),
+          points: pts,
+          level: res.data.level,
+          difficulty: (cleanDifficulty.charAt(0).toUpperCase() + cleanDifficulty.slice(1)) as "Easy" | "Medium" | "Hard",
+          description: res.data.description,
+          flag: trimmedFlag,
+          clueLink: res.data.hintUrl || undefined,
+          isActive: true,
+          status: "Published",
+          solves: 0,
+        };
+        onAddChallenge(newChal);
+        onAddLog({
+          id: `LOG-INIT-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "challenge_add",
+          message: `Challenge Initialized: '${trimmedTitle}' [Level ${cleanLevel} - ${cleanDifficulty.toUpperCase()} - ${pts} PTS]`,
+        });
+        setSuccessToast(`CHALLENGE '${trimmedTitle}' DEPLOYED TO DATABASE.`);
       }
-      return;
+
+      // Reset form fields
+      setFormTitle("");
+      setFormDifficulty("easy");
+      setFormLevel(cleanLevel);
+      setFormDescription("");
+      setFormFlag("");
+      setFormClueLink("");
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setFormError(`Failed to save challenge: ${msg}`);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const timestamp = new Date().toTimeString().split(" ")[0];
-
-    if (editingChallenge) {
-      // Update existing challenge
-      const updated: Challenge = {
-        ...editingChallenge,
-        title: trimmedTitle,
-        category: formCategory,
-        points: cleanPoints,
-        level: cleanLevel,
-        description: trimmedDesc,
-        flag: trimmedFlag,
-        clueLink: formClueLink.trim() || undefined,
-        isActive: editingChallenge.isActive ?? true,
-        status: editingChallenge.isActive ? "Published" : "Draft",
-      };
-      onUpdateChallenge(updated);
-      onAddLog({
-        id: `LOG-EDIT-${Date.now()}`,
-        timestamp,
-        type: "challenge_add",
-        message: `Challenge '${trimmedTitle}' [Level ${cleanLevel}] updated [${cleanPoints} PTS].`,
-      });
-      setSuccessToast(`CHALLENGE '${trimmedTitle}' UPDATED SUCCESSFULLY.`);
-      setEditingChallenge(null);
-    } else {
-      // Create new initialized challenge
-      const newId = `CHAL-${Date.now().toString(36).toUpperCase()}`;
-      const newChal: Challenge = {
-        id: newId,
-        title: trimmedTitle,
-        category: formCategory,
-        points: cleanPoints,
-        level: cleanLevel,
-        description: trimmedDesc,
-        flag: trimmedFlag,
-        clueLink: formClueLink.trim() || undefined,
-        isActive: true,
-        status: "Published",
-        solves: 0,
-      };
-      onAddChallenge(newChal);
-      onAddLog({
-        id: `LOG-INIT-${Date.now()}`,
-        timestamp,
-        type: "challenge_add",
-        message: `Challenge Initialized: '${trimmedTitle}' [${formCategory} - Level ${cleanLevel} - ${cleanPoints} PTS]`,
-      });
-      setSuccessToast(`CHALLENGE '${trimmedTitle}' INITIALIZED IN MATRIX.`);
-    }
-
-    // Reset form fields
-    setFormTitle("");
-    setFormCategory("WEB");
-    setFormLevel(cleanLevel);
-    
-    // Auto-suggest next remaining points for the same level if any remain
-    const nextExisting = existingLevelPts + cleanPoints;
-    const nextRem = Math.max(0, maxLevelPts - nextExisting);
-    setFormPoints(nextRem > 0 ? (nextRem >= 100 ? 100 : nextRem) : 50);
-
-    setFormDescription("");
-    setFormFlag("");
-    setFormClueLink("");
-    setPointsManuallyEdited(false);
-    setTimeout(() => setSuccessToast(null), 4000);
   };
 
   // Populate form for Editing
   const handleStartEdit = (c: Challenge) => {
     setEditingChallenge(c);
     setFormTitle(c.title);
-    setFormCategory(c.category?.toUpperCase() || "WEB");
-    setFormPoints(c.points || 100);
+    const diff = (c.difficulty?.toLowerCase() || "easy") as DifficultyType;
+    setFormDifficulty(["easy", "medium", "high"].includes(diff) ? diff : "easy");
     setFormLevel(c.level || 1);
     setFormDescription(c.description || "");
     setFormFlag(c.flag || "");
     setFormClueLink(c.clueLink || "");
-    setPointsManuallyEdited(true);
     setFormError(null);
 
     // Scroll smoothly to form
@@ -292,13 +244,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   const handleCancelEdit = () => {
     setEditingChallenge(null);
     setFormTitle("");
-    setFormCategory("WEB");
+    setFormDifficulty("easy");
     setFormLevel(1);
-    setFormPoints(100);
     setFormDescription("");
     setFormFlag("");
     setFormClueLink("");
-    setPointsManuallyEdited(false);
     setFormError(null);
   };
 
@@ -322,8 +272,16 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   };
 
   // Delete challenge confirmation
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingChallenge) return;
+    try {
+      const numId = Number(deletingChallenge.id);
+      if (Number.isSafeInteger(numId) && numId > 0) {
+        await api.challenges.delete(numId);
+      }
+    } catch (err: unknown) {
+      console.warn("Backend challenge deletion warning:", err);
+    }
     onDeleteChallenge(deletingChallenge.id);
     onAddLog({
       id: `LOG-DEL-${deletingChallenge.id}`,
@@ -455,28 +413,9 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             />
           </div>
 
-          {/* ROW 1: CATEGORY, LEVEL, POINTS (3-Column Layout) */}
-          <div className="form-grid-3">
-            {/* CATEGORY */}
-            <div className="form-group">
-              <label htmlFor="cec-chal-category" className="cec-field-label">
-                CATEGORY <span className="text-red">*</span>
-              </label>
-              <select
-                id="cec-chal-category"
-                value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value)}
-                className="cec-terminal-select"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* LEVEL (1 to 4 with capacity indicators) */}
+          {/* ROW 1: LEVEL & DIFFICULTY TIER (2-Column Layout) */}
+          <div className="form-grid-2">
+            {/* LEVEL */}
             <div className="form-group">
               <label htmlFor="cec-chal-level" className="cec-field-label">
                 LEVEL (TARGET POOL) <span className="text-red">*</span>
@@ -484,57 +423,38 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               <select
                 id="cec-chal-level"
                 value={formLevel}
-                onChange={(e) => handleLevelChange(Number(e.target.value))}
+                onChange={(e) => setFormLevel(Number(e.target.value))}
                 className="cec-terminal-select"
               >
                 {LEVELS.map((lvl) => {
-                  const cap = LEVEL_POINTS_CONFIG[lvl];
-                  const used = challenges
-                    .filter((c) => (c.level || 1) === lvl && c.id !== editingChallenge?.id)
-                    .reduce((sum, c) => sum + (c.points || 0), 0);
-                  const rem = Math.max(0, cap - used);
                   const count = challenges.filter((c) => (c.level || 1) === lvl).length;
                   return (
                     <option key={lvl} value={lvl}>
-                      LEVEL 0{lvl} (Max: {cap} PTS) — {used} used, {rem} rem ({count} {count === 1 ? "q" : "q's"})
+                      LEVEL 0{lvl} ({count} {count === 1 ? "question" : "questions"} registered)
                     </option>
                   );
                 })}
               </select>
             </div>
 
-            {/* POINTS */}
+            {/* DIFFICULTY TIER */}
             <div className="form-group">
-              <label htmlFor="cec-chal-points" className="cec-field-label">
-                POINTS ALLOTTED <span className="text-red">*</span>
+              <label htmlFor="cec-chal-difficulty" className="cec-field-label">
+                DIFFICULTY TIER <span className="text-red">*</span>
               </label>
-              <input
-                id="cec-chal-points"
-                type="number"
-                min={1}
-                step={1}
-                value={formPoints}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFormPoints(val === "" ? "" : Number(val));
-                  setPointsManuallyEdited(true);
-                  setFormError(null);
-                }}
-                placeholder="e.g. 50, 100, 150..."
-                required
-                className={`cec-terminal-input ${isOverAllocating ? "input-border-warning" : ""}`}
-              />
-              <div className="field-hint-wrap">
-                <span className="field-hint-text">
-                  Level 0{formLevel} Limit: <strong className="text-cyan">{currentLevelExistingPoints} / {maxPointsForFormLevel} PTS</strong>
-                  {" "}• {remainingPointsForFormLevel} PTS available for this level
-                </span>
-                {isOverAllocating && (
-                  <span className="field-warning-text">
-                    ⚠️ {numericPoints} PTS exceeds remaining {remainingPointsForFormLevel} PTS for Level 0{formLevel}
-                  </span>
-                )}
-              </div>
+              <select
+                id="cec-chal-difficulty"
+                value={formDifficulty}
+                onChange={(e) => setFormDifficulty(e.target.value as DifficultyType)}
+                className="cec-terminal-select"
+              >
+                <option value="easy">EASY — 10 PTS</option>
+                <option value="medium">MEDIUM — 20 PTS</option>
+                <option value="high">HIGH — 30 PTS</option>
+              </select>
+              <span className="field-hint-text">
+                Points scored on capture: Easy = 10 PTS, Medium = 20 PTS, High = 30 PTS
+              </span>
             </div>
           </div>
 
@@ -596,9 +516,13 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
             <button
               type="submit"
               className="cec-submit-btn"
-              disabled={remainingPointsForFormLevel <= 0 && !editingChallenge}
+              disabled={isSubmitting}
             >
-              {editingChallenge ? "[ SAVE MODIFICATIONS ]" : "[ INITIALIZE CHALLENGE ]"}
+              {isSubmitting
+                ? "[ TRANSMITTING TO DATABASE... ]"
+                : editingChallenge
+                ? "[ SAVE MODIFICATIONS ]"
+                : "[ + DEPLOY CHALLENGE TO DATABASE ]"}
             </button>
             {editingChallenge && (
               <button
@@ -608,11 +532,6 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               >
                 [ CANCEL EDIT ]
               </button>
-            )}
-            {remainingPointsForFormLevel <= 0 && !editingChallenge && (
-              <span className="level-satisfied-note">
-                ✓ Level 0{formLevel} pool is 100% satisfied ({maxPointsForFormLevel}/{maxPointsForFormLevel} PTS). Select another level to add more questions.
-              </span>
             )}
           </div>
         </form>
@@ -668,20 +587,18 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
           </div>
 
           <div className="cec-filters-wrap">
-            {/* Category Filter */}
+            {/* Difficulty Filter */}
             <div className="filter-select-group">
               <FilterIcon className="w-3.5 h-3.5 text-gray" />
               <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                value={selectedDifficulty}
+                onChange={(e) => setSelectedDifficulty(e.target.value)}
                 className="cec-filter-select"
               >
-                <option value="All">All Categories</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
+                <option value="All">All Difficulties</option>
+                <option value="easy">Easy (10 PTS)</option>
+                <option value="medium">Medium (20 PTS)</option>
+                <option value="high">High (30 PTS)</option>
               </select>
             </div>
 
@@ -723,7 +640,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
               <tr>
                 <th style={{ width: "90px", textAlign: "center" }}>LEVEL</th>
                 <th style={{ minWidth: "280px" }}>TITLE &amp; BRIEFING</th>
-                <th style={{ width: "120px", textAlign: "center" }}>CATEGORY</th>
+                <th style={{ width: "120px", textAlign: "center" }}>DIFFICULTY</th>
                 <th style={{ width: "100px", textAlign: "center" }}>POINTS</th>
                 <th style={{ width: "120px", textAlign: "center" }}>CLUE LINK</th>
                 <th style={{ width: "100px", textAlign: "center" }}>ACTIVE</th>
@@ -790,10 +707,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                         )}
                       </td>
 
-                      {/* CATEGORY */}
+                      {/* DIFFICULTY */}
                       <td style={{ textAlign: "center" }}>
-                        <span className={`cec-category-badge cat-${(c.category || "WEB").toLowerCase()}`}>
-                          {c.category?.toUpperCase() || "WEB"}
+                        <span className={`cec-category-badge cat-${(c.difficulty || "easy").toLowerCase()}`}>
+                          {(c.difficulty || "EASY").toUpperCase()}
                         </span>
                       </td>
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef } from "react";
 import { Team, TeamMember, ActivityLog } from "../data/mockData";
+import { api } from "@/lib/api";
 import { ConfirmationModal } from "./ConfirmationModal";
 import {
   UsersIcon,
@@ -70,11 +71,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [teamFormName, setTeamFormName] = useState("");
   const [teamFormPasscode, setTeamFormPasscode] = useState("HEIST2026");
-  const [teamFormCaptainName, setTeamFormCaptainName] = useState("");
-  const [teamFormCaptainEmail, setTeamFormCaptainEmail] = useState("");
-  const [teamFormOperatives, setTeamFormOperatives] = useState("");
-  const [teamFormOrg, setTeamFormOrg] = useState("");
+  const [teamFormScore, setTeamFormScore] = useState<number>(0);
   const [singleFormError, setSingleFormError] = useState<string | null>(null);
+  const [isSingleSaving, setIsSingleSaving] = useState(false);
 
   // Deletion Modal
   const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
@@ -534,90 +533,93 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
   };
 
   // Single Team Add / Edit Submit
-  const handleSubmitSingleTeam = (e: React.FormEvent) => {
+  const handleSubmitSingleTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     setSingleFormError(null);
 
     const name = teamFormName.trim();
-    const capName = teamFormCaptainName.trim();
-    const capEmail = teamFormCaptainEmail.trim();
+    const passcode = teamFormPasscode.trim() || "HEIST2026";
+    const scoreVal = Number(teamFormScore) || 0;
 
     if (!name) {
       setSingleFormError("Squad Name is required.");
       return;
     }
-    if (!capName) {
-      setSingleFormError("Captain Name is required.");
-      return;
-    }
-    if (!capEmail || !capEmail.includes("@")) {
-      setSingleFormError("Valid Captain Email is required.");
+    if (!passcode || passcode.length < 4) {
+      setSingleFormError("Squad Password must be at least 4 characters.");
       return;
     }
 
-    const ops = teamFormOperatives
-      .split(/[,;\n]/)
-      .map((o) => o.trim())
-      .filter((o) => o.length > 0);
+    setIsSingleSaving(true);
+    try {
+      if (editingTeam) {
+        const numId = Number(editingTeam.id);
+        if (Number.isSafeInteger(numId) && numId > 0) {
+          await api.teams.update(numId, {
+            team_name: name,
+            password: passcode,
+            score: scoreVal,
+          });
+        }
+        const updated: Team = {
+          ...editingTeam,
+          name,
+          score: scoreVal,
+          passcode,
+        };
+        onUpdateTeam(updated);
+        onAddLog({
+          id: `LOG-TEAM-EDIT-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "team_register",
+          message: `Squad '${name}' credentials updated.`,
+        });
+        showToast(`SQUAD '${name}' UPDATED.`);
+      } else {
+        const res = await api.teams.create({
+          team_name: name,
+          password: passcode,
+          score: scoreVal,
+        });
 
-    const members: TeamMember[] = [
-      { name: capName, email: capEmail, role: "Captain" },
-      ...ops.map((op) => ({
-        name: op,
-        email: `${op.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
-        role: "Operative" as const,
-      })),
-    ];
+        const newTeam: Team = {
+          id: String(res.data.id),
+          name: res.data.team_name,
+          members: [
+            {
+              name: name,
+              email: `${name.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
+              role: "Captain",
+            },
+          ],
+          score: res.data.score ?? scoreVal,
+          solvedCount: 0,
+          registrationStatus: "VERIFIED",
+          lastActive: "Just now",
+          rank: teams.length + 1,
+          passcode,
+        };
+        onAddTeam(newTeam);
+        onAddLog({
+          id: `LOG-TEAM-NEW-${Date.now()}`,
+          timestamp: new Date().toTimeString().split(" ")[0],
+          type: "team_register",
+          message: `New Squad Registered: '${name}'.`,
+        });
+        showToast(`SQUAD '${name}' REGISTERED IN DATABASE.`);
+      }
 
-    const passcode = teamFormPasscode.trim() || "HEIST2026";
-
-    if (editingTeam) {
-      const updated: Team = {
-        ...editingTeam,
-        name,
-        members,
-        organization: teamFormOrg.trim() || undefined,
-        passcode,
-      };
-      onUpdateTeam(updated);
-      onAddLog({
-        id: `LOG-TEAM-EDIT-${Date.now()}`,
-        timestamp: new Date().toTimeString().split(" ")[0],
-        type: "team_register",
-        message: `Squad '${name}' credentials updated.`,
-      });
-      showToast(`SQUAD '${name}' UPDATED.`);
-    } else {
-      const newTeam: Team = {
-        id: `TM-${(teams.length + 1).toString().padStart(3, "0")}`,
-        name,
-        members,
-        score: 0,
-        solvedCount: 0,
-        registrationStatus: "VERIFIED",
-        lastActive: "Just now",
-        rank: teams.length + 1,
-        organization: teamFormOrg.trim() || undefined,
-        passcode,
-      };
-      onAddTeam(newTeam);
-      onAddLog({
-        id: `LOG-TEAM-NEW-${Date.now()}`,
-        timestamp: new Date().toTimeString().split(" ")[0],
-        type: "team_register",
-        message: `New Squad Registered: '${name}' (${members.length} members).`,
-      });
-      showToast(`SQUAD '${name}' REGISTERED.`);
+      setIsSingleTeamModalOpen(false);
+      setEditingTeam(null);
+      setTeamFormName("");
+      setTeamFormPasscode("HEIST2026");
+      setTeamFormScore(0);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSingleFormError(`Failed to save squad: ${msg}`);
+    } finally {
+      setIsSingleSaving(false);
     }
-
-    setIsSingleTeamModalOpen(false);
-    setEditingTeam(null);
-    setTeamFormName("");
-    setTeamFormPasscode("HEIST2026");
-    setTeamFormCaptainName("");
-    setTeamFormCaptainEmail("");
-    setTeamFormOperatives("");
-    setTeamFormOrg("");
   };
 
   // Start Editing Team
@@ -625,16 +627,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
     setEditingTeam(team);
     setTeamFormName(team.name);
     setTeamFormPasscode(team.passcode || "HEIST2026");
-    const cap = team.members.find((m) => m.role === "Captain") || team.members[0];
-    setTeamFormCaptainName(cap?.name || "");
-    setTeamFormCaptainEmail(cap?.email || "");
-    setTeamFormOperatives(
-      team.members
-        .filter((m) => m.role === "Operative")
-        .map((m) => m.name)
-        .join(", ")
-    );
-    setTeamFormOrg(team.organization || "");
+    setTeamFormScore(team.score || 0);
     setSingleFormError(null);
     setIsSingleTeamModalOpen(true);
   };
@@ -657,8 +650,16 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
   };
 
   // Confirm Delete Single Team
-  const handleConfirmDeleteSingle = () => {
+  const handleConfirmDeleteSingle = async () => {
     if (!deletingTeam) return;
+    try {
+      const numId = Number(deletingTeam.id);
+      if (Number.isSafeInteger(numId) && numId > 0) {
+        await api.teams.delete(numId);
+      }
+    } catch (err: unknown) {
+      console.warn("Backend team deletion warning:", err);
+    }
     onDeleteTeam(deletingTeam.id);
     onAddLog({
       id: `LOG-DEL-TEAM-${Date.now()}`,
@@ -745,10 +746,8 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
               onClick={() => {
                 setEditingTeam(null);
                 setTeamFormName("");
-                setTeamFormCaptainName("");
-                setTeamFormCaptainEmail("");
-                setTeamFormOperatives("");
-                setTeamFormOrg("");
+                setTeamFormPasscode("HEIST2026");
+                setTeamFormScore(0);
                 setSingleFormError(null);
                 setIsSingleTeamModalOpen(true);
               }}
@@ -1435,58 +1434,24 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                 <span className="field-hint-text">All members will use this squad name and password to enter the arena</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="form-group">
-                  <label className="cec-field-label">CAPTAIN NAME *</label>
-                  <input
-                    type="text"
-                    value={teamFormCaptainName}
-                    onChange={(e) => setTeamFormCaptainName(e.target.value)}
-                    placeholder="e.g. Alex Mercer"
-                    required
-                    className="cec-terminal-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="cec-field-label">CAPTAIN EMAIL *</label>
-                  <input
-                    type="email"
-                    value={teamFormCaptainEmail}
-                    onChange={(e) => setTeamFormCaptainEmail(e.target.value)}
-                    placeholder="alex@college.edu"
-                    required
-                    className="cec-terminal-input"
-                  />
-                </div>
-              </div>
-
               <div className="form-group">
-                <label className="cec-field-label">OPERATIVES (COMMA-SEPARATED)</label>
+                <label className="cec-field-label">INITIAL SCORE (PTS)</label>
                 <input
-                  type="text"
-                  value={teamFormOperatives}
-                  onChange={(e) => setTeamFormOperatives(e.target.value)}
-                  placeholder="Elena Rostova, Kaelen Voss"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={teamFormScore}
+                  onChange={(e) => setTeamFormScore(Number(e.target.value) || 0)}
+                  placeholder="0"
                   className="cec-terminal-input"
                 />
-                <span className="field-hint-text">Enter additional squad members separated by commas</span>
-              </div>
-
-              <div className="form-group">
-                <label className="cec-field-label">COLLEGE / INSTITUTION (OPTIONAL)</label>
-                <input
-                  type="text"
-                  value={teamFormOrg}
-                  onChange={(e) => setTeamFormOrg(e.target.value)}
-                  placeholder="e.g. City Engineering College"
-                  className="cec-terminal-input"
-                />
+                <span className="field-hint-text">Starting points for the squad in the tournament leaderboard (default: 0)</span>
               </div>
 
               <div className="admin-modal-footer mt-4">
                 <button
                   type="button"
+                  disabled={isSingleSaving}
                   onClick={() => setIsSingleTeamModalOpen(false)}
                   className="modal-btn modal-btn-cancel"
                 >
@@ -1494,10 +1459,15 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                 </button>
                 <button
                   type="submit"
+                  disabled={isSingleSaving}
                   className="modal-btn modal-btn-confirm"
                   style={{ background: "#00f3ff", color: "#040406" }}
                 >
-                  {editingTeam ? "SAVE SQUAD" : "REGISTER SQUAD"}
+                  {isSingleSaving
+                    ? "SAVING SQUAD..."
+                    : editingTeam
+                    ? "SAVE SQUAD"
+                    : "REGISTER SQUAD"}
                 </button>
               </div>
             </form>

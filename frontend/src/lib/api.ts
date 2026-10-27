@@ -63,6 +63,7 @@ export interface TeamResponse {
     id: number;
     team_name: string;
     score: number;
+    createdAt?: string;
   };
 }
 
@@ -94,6 +95,7 @@ export interface ChallengeResponse {
     id: number;
     title: string;
     description: string;
+    flag?: string;
     hintUrl: string | null;
     level: number;
     difficulty: "easy" | "medium" | "high";
@@ -342,7 +344,7 @@ export const api = {
   // 4. Teams (Admin & User)
   teams: {
     getAll: () =>
-      apiRequest<{ success: boolean; data: Array<{ id: number; team_name: string; score: number }> }>(
+      apiRequest<{ success: boolean; data: Array<{ id: number; team_name: string; score: number; createdAt?: string }> }>(
         "/api/teams",
         { method: "GET" }
       ),
@@ -379,10 +381,20 @@ export const api = {
 
   // 5. Challenges (Admin only)
   challenges: {
+    getAll: () =>
+      apiRequest<{ success: boolean; data: ChallengeResponse["data"][] }>("/api/challenges", {
+        method: "GET",
+      }),
+
     create: (payload: CreateChallengePayload) =>
       apiRequest<ChallengeResponse>("/api/challenges", {
         method: "POST",
         body: JSON.stringify(payload),
+      }),
+
+    delete: (id: number) =>
+      apiRequest<{ success: boolean; message: string }>(`/api/challenges/${id}`, {
+        method: "DELETE",
       }),
   },
 };

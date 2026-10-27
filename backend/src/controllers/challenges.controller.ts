@@ -1,9 +1,31 @@
-
+import { eq } from 'drizzle-orm'
 import { createDb } from '../db'
 import { challenges } from '../db/schema/challenges'
 import type { AppContext } from '../types'
 
 const allowedDifficulties = ['easy', 'medium', 'high'] as const
+
+export async function getAllChallenges(c: AppContext) {
+  const db = createDb(c.env.cec_heist_db)
+  const all = await db
+    .select({
+      id: challenges.id,
+      title: challenges.title,
+      description: challenges.description,
+      flag: challenges.flag,
+      hintUrl: challenges.hintUrl,
+      level: challenges.level,
+      difficulty: challenges.difficulty,
+      createdAt: challenges.createdAt,
+    })
+    .from(challenges)
+    .orderBy(challenges.id)
+
+  return c.json({
+    success: true,
+    data: all,
+  })
+}
 
 export async function createChallenge(c: AppContext) {
   let body: {
@@ -115,5 +137,29 @@ export async function createChallenge(c: AppContext) {
       { success: false, message: 'Unable to create challenge' },
       500
     )
+  }
+}
+
+export async function deleteChallenge(c: AppContext) {
+  const id = Number(c.req.param('id'))
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return c.json({ success: false, message: 'Invalid challenge ID' }, 400)
+  }
+
+  try {
+    const db = createDb(c.env.cec_heist_db)
+    const [deleted] = await db
+      .delete(challenges)
+      .where(eq(challenges.id, id))
+      .returning({ id: challenges.id })
+
+    if (!deleted) {
+      return c.json({ success: false, message: 'Challenge not found' }, 404)
+    }
+
+    return c.json({ success: true, message: 'Challenge deleted successfully' })
+  } catch (error) {
+    console.error('Delete challenge failed:', error)
+    return c.json({ success: false, message: 'Unable to delete challenge' }, 500)
   }
 }

@@ -11,7 +11,7 @@ import { ChallengeManagement } from "./components/ChallengeManagement";
 import { TeamManagement } from "./components/TeamManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
-import { getStoredUser, getAccessToken, clearAuthTokens } from "@/lib/api";
+import { getStoredUser, getAccessToken, clearAuthTokens, api } from "@/lib/api";
 
 import {
   INITIAL_TEAMS,
@@ -98,6 +98,81 @@ export default function AdminPage() {
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
+
+  // Load live challenges and teams from backend when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let isMounted = true;
+
+    async function loadAdminData() {
+      try {
+        const [teamsRes, challengesRes] = await Promise.allSettled([
+          api.teams.getAll(),
+          api.challenges.getAll(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (
+          teamsRes.status === "fulfilled" &&
+          teamsRes.value.success &&
+          Array.isArray(teamsRes.value.data)
+        ) {
+          const mappedTeams: Team[] = teamsRes.value.data.map((t, idx) => ({
+            id: String(t.id),
+            name: t.team_name,
+            score: t.score ?? 0,
+            members: [
+              {
+                name: t.team_name,
+                email: `${t.team_name.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
+                role: "Captain",
+              },
+            ],
+            solvedCount: 0,
+            registrationStatus: "VERIFIED",
+            lastActive: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "Just now",
+            rank: idx + 1,
+          }));
+          setTeams(mappedTeams);
+        }
+
+        if (
+          challengesRes.status === "fulfilled" &&
+          challengesRes.value.success &&
+          Array.isArray(challengesRes.value.data)
+        ) {
+          const ptsMap: Record<string, number> = { easy: 10, medium: 20, high: 30 };
+          const mappedChals: Challenge[] = challengesRes.value.data.map((c) => ({
+            id: String(c.id),
+            title: c.title,
+            category: (c.difficulty || "easy").toUpperCase(),
+            points: ptsMap[c.difficulty] || 10,
+            level: c.level,
+            difficulty: (c.difficulty
+              ? c.difficulty.charAt(0).toUpperCase() + c.difficulty.slice(1)
+              : "Easy") as "Easy" | "Medium" | "Hard",
+            description: c.description,
+            flag: c.flag || "CTF{hidden}",
+            clueLink: c.hintUrl || undefined,
+            isActive: true,
+            status: "Published",
+            solves: 0,
+          }));
+          setChallenges(mappedChals);
+        }
+      } catch (err) {
+        console.warn("Live admin data load error:", err);
+      }
+    }
+
+    loadAdminData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
 
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [eventConfig, setEventConfig] = useState<EventConfig>(INITIAL_EVENT_CONFIG);
