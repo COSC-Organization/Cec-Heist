@@ -46,7 +46,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
   const [formTitle, setFormTitle] = useState("");
   const [formCategory, setFormCategory] = useState<string>("WEB");
   const [formLevel, setFormLevel] = useState<number>(1);
-  const [formPoints, setFormPoints] = useState<number>(LEVEL_POINTS_CONFIG[1]);
+  const [formPoints, setFormPoints] = useState<number | string>(100);
   const [formDescription, setFormDescription] = useState("");
   const [formFlag, setFormFlag] = useState("");
   const [formClueLink, setFormClueLink] = useState("");
@@ -76,7 +76,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     return acc;
   }, [challenges]);
 
-  // Current level capacity tracking for the active form level
+  // Current level capacity tracking for the active form level (excluding edited challenge if any)
   const currentLevelExistingPoints = useMemo(() => {
     return challenges
       .filter((c) => (c.level || 1) === formLevel && c.id !== editingChallenge?.id)
@@ -91,7 +91,8 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     maxPointsForFormLevel - currentLevelExistingPoints
   );
 
-  const isOverAllocating = formPoints > remainingPointsForFormLevel;
+  const numericPoints = typeof formPoints === "string" ? parseInt(formPoints, 10) || 0 : formPoints;
+  const isOverAllocating = numericPoints > remainingPointsForFormLevel;
 
   const totalPoints = useMemo(
     () => challenges.reduce((sum, c) => sum + (c.points || 0), 0),
@@ -108,7 +109,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     [challenges]
   );
 
-  // When Level changes in form, calculate remaining capacity for that level
+  // When Level changes in form, recalculate available allowance
   const handleLevelChange = (newLevel: number) => {
     setFormLevel(newLevel);
     setFormError(null);
@@ -118,10 +119,10 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       .reduce((sum, c) => sum + (c.points || 0), 0);
     const rem = Math.max(0, maxLvl - existing);
 
-    // If remaining is > 0 and user hasn't explicitly locked a custom point value, suggest the remaining points
+    // If remaining is > 0 and points not manually locked, suggest remaining or a reasonable starting value
     if (!pointsManuallyEdited && !editingChallenge) {
-      setFormPoints(rem > 0 ? rem : 0);
-    } else if (formPoints > rem) {
+      setFormPoints(rem > 0 ? (rem >= 100 ? 100 : rem) : 0);
+    } else if (typeof formPoints === "number" && formPoints > rem) {
       setFormPoints(rem);
     }
   };
@@ -159,7 +160,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     const trimmedTitle = formTitle.trim();
     const trimmedDesc = formDescription.trim();
     const trimmedFlag = formFlag.trim();
-    const cleanPoints = Number(formPoints);
+    const cleanPoints = typeof formPoints === "string" ? parseInt(formPoints, 10) : formPoints;
     const cleanLevel = Math.max(1, Math.min(4, Number(formLevel) || 1));
 
     if (!trimmedTitle) {
@@ -174,8 +175,8 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
       setFormError("FLAG (SECRET) is required (e.g. CTF{...} or FLAG{...}).");
       return;
     }
-    if (cleanPoints <= 0) {
-      setFormError("POINTS allocated must be greater than 0.");
+    if (isNaN(cleanPoints) || cleanPoints <= 0) {
+      setFormError("POINTS allocated must be a positive number greater than 0.");
       return;
     }
 
@@ -190,11 +191,11 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     if (cleanPoints > remainingForLevel) {
       if (remainingForLevel <= 0) {
         setFormError(
-          `Level 0${cleanLevel} is already fully satisfied at ${maxLevelPts}/${maxLevelPts} PTS. No further questions can be added to this level unless existing questions are edited or removed.`
+          `Level 0${cleanLevel} has already reached its maximum set limit of ${maxLevelPts} PTS. No further points can be allocated to this level.`
         );
       } else {
         setFormError(
-          `Cannot allocate ${cleanPoints} PTS. Level 0${cleanLevel} has only ${remainingForLevel} PTS remaining to satisfy its ${maxLevelPts} PTS cap (Currently allocated: ${existingLevelPts} PTS).`
+          `Cannot allocate ${cleanPoints} PTS. Level 0${cleanLevel} has only ${remainingForLevel} PTS remaining to stay within its maximum limit of ${maxLevelPts} PTS (Currently allocated: ${existingLevelPts} PTS).`
         );
       }
       return;
@@ -259,7 +260,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     // Auto-suggest next remaining points for the same level if any remain
     const nextExisting = existingLevelPts + cleanPoints;
     const nextRem = Math.max(0, maxLevelPts - nextExisting);
-    setFormPoints(nextRem > 0 ? nextRem : 50);
+    setFormPoints(nextRem > 0 ? (nextRem >= 100 ? 100 : nextRem) : 50);
 
     setFormDescription("");
     setFormFlag("");
@@ -293,7 +294,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
     setFormTitle("");
     setFormCategory("WEB");
     setFormLevel(1);
-    setFormPoints(LEVEL_POINTS_CONFIG[1]);
+    setFormPoints(100);
     setFormDescription("");
     setFormFlag("");
     setFormClueLink("");
@@ -437,7 +438,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmitChallenge} className="cec-form-container">
+        <form onSubmit={handleSubmitChallenge} noValidate className="cec-form-container">
           {/* TITLE */}
           <div className="form-group-full">
             <label htmlFor="cec-chal-title" className="cec-field-label">
@@ -495,7 +496,7 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                   const count = challenges.filter((c) => (c.level || 1) === lvl).length;
                   return (
                     <option key={lvl} value={lvl}>
-                      LEVEL 0{lvl} — {used}/{cap} PTS ({count} {count === 1 ? "q" : "q's"}, {rem} PTS rem)
+                      LEVEL 0{lvl} (Max: {cap} PTS) — {used} used, {rem} rem ({count} {count === 1 ? "q" : "q's"})
                     </option>
                   );
                 })}
@@ -511,25 +512,26 @@ export const ChallengeManagement: React.FC<ChallengeManagementProps> = ({
                 id="cec-chal-points"
                 type="number"
                 min={1}
-                max={remainingPointsForFormLevel > 0 ? remainingPointsForFormLevel : undefined}
-                step={5}
+                step={1}
                 value={formPoints}
                 onChange={(e) => {
-                  setFormPoints(Number(e.target.value));
+                  const val = e.target.value;
+                  setFormPoints(val === "" ? "" : Number(val));
                   setPointsManuallyEdited(true);
                   setFormError(null);
                 }}
+                placeholder="e.g. 50, 100, 150..."
                 required
                 className={`cec-terminal-input ${isOverAllocating ? "input-border-warning" : ""}`}
               />
               <div className="field-hint-wrap">
                 <span className="field-hint-text">
-                  Level 0{formLevel} Cap: <strong className="text-cyan">{currentLevelExistingPoints} / {maxPointsForFormLevel} PTS</strong>
-                  {" "}• {remainingPointsForFormLevel} PTS available
+                  Level 0{formLevel} Limit: <strong className="text-cyan">{currentLevelExistingPoints} / {maxPointsForFormLevel} PTS</strong>
+                  {" "}• {remainingPointsForFormLevel} PTS available for this level
                 </span>
                 {isOverAllocating && (
                   <span className="field-warning-text">
-                    ⚠️ Exceeds remaining {remainingPointsForFormLevel} PTS for Level 0{formLevel}
+                    ⚠️ {numericPoints} PTS exceeds remaining {remainingPointsForFormLevel} PTS for Level 0{formLevel}
                   </span>
                 )}
               </div>
