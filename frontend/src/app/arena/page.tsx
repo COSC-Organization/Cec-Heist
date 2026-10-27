@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
+import { useAuth } from "../../context/AuthContext";
+import AuthGuard from "../../components/AuthGuard";
 import ArenaCar from "../../components/ArenaCar";
 
 // Web Audio API Sound Generators
@@ -323,6 +325,7 @@ export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
@@ -601,12 +604,20 @@ export default function ArenaPage() {
 
     if (href === "/leaderboard") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/leaderboard");
+        return;
+      }
       triggerTransition("/leaderboard", "left-to-right");
       return;
     }
 
     if (href === "/profile") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/profile");
+        return;
+      }
       triggerTransition("/profile", "left-to-right");
       return;
     }
@@ -646,7 +657,8 @@ export default function ArenaPage() {
   }, [activeChallenge, activeFacility]);
 
   return (
-    <main className="arena-screen">
+    <AuthGuard sectorName="INFILTRATION ARENA">
+      <main className="arena-screen">
       <audio ref={audioRef} src="/music/background%20music.mpeg" loop />
 
       {/* Header Pill */}
@@ -870,43 +882,6 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Dev / Testing Factory Unlock Control */}
-      <div className="arena-unlock-tester">
-        <div className="unlock-tester-status">
-          <span className="terminal-dot pulse-amber" />
-          <span>STAGE: SEC 0{unlockedStages} / 04</span>
-        </div>
-        <button
-          type="button"
-          className="unlock-tester-btn primary"
-          onClick={() => {
-            playCyberClick();
-            if (unlockedStages < 4) {
-              triggerUnlock(unlockedStages + 1);
-            } else {
-              triggerUnlock(1);
-            }
-          }}
-          title="Unlock the next factory to test vehicle movement"
-        >
-          {unlockedStages < 4
-            ? `⚡ [UNLOCK FACTORY 0${unlockedStages + 1}]`
-            : "↺ [RESET TO FACTORY 01]"}
-        </button>
-        {unlockedStages > 1 && (
-          <button
-            type="button"
-            className="unlock-tester-btn secondary"
-            onClick={() => {
-              playCyberClick();
-              triggerUnlock(1);
-            }}
-            title="Reset progress to Factory 01"
-          >
-            [RESET]
-          </button>
-        )}
-      </div>
 
       {/* Facility Quad Cards Modal */}
       {selectedFacility && (
@@ -1115,6 +1090,7 @@ export default function ArenaPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

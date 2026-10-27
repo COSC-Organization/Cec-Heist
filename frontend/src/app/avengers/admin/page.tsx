@@ -12,6 +12,7 @@ import { TeamManagement } from "./components/TeamManagement";
 import { LeaderboardManagement } from "./components/LeaderboardManagement";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { playVaultTransitionSound } from "@/components/PixelTransition";
+import { getStoredUser, getAccessToken, clearAuthTokens } from "@/lib/api";
 
 import {
   INITIAL_TEAMS,
@@ -26,9 +27,20 @@ import {
 } from "./data/mockData";
 
 export default function AdminPage() {
-  // Session State (simulated client-side session)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [adminEmail, setAdminEmail] = useState<string>("");
+  // Session State (checks stored admin session on mount)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const user = getStoredUser();
+    const token = getAccessToken();
+    return Boolean(token && user && user.role === "admin");
+  });
+
+  const [adminEmail, setAdminEmail] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const user = getStoredUser();
+    return user && user.role === "admin" ? user.email : "";
+  });
+
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
@@ -45,6 +57,7 @@ export default function AdminPage() {
     }
     return INITIAL_TEAMS;
   });
+
   const [challenges, setChallenges] = useState<Challenge[]>(() => {
     if (typeof window !== "undefined") {
       const savedV3 = localStorage.getItem("cec_heist_challenges_v3");
@@ -334,6 +347,7 @@ export default function AdminPage() {
 
   const handleConfirmLogout = () => {
     playVaultTransitionSound("left-to-right");
+    clearAuthTokens();
     setIsAuthenticated(false);
     setIsLogoutModalOpen(false);
     setActiveTab("overview");
@@ -344,7 +358,7 @@ export default function AdminPage() {
     return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 2. If authenticated, render Admin Dashboard Layout with Feature 1: Overview
+  // 2. If authenticated, render Admin Dashboard Layout
   return (
     <>
       {/* Logout Confirmation Modal */}
@@ -364,7 +378,7 @@ export default function AdminPage() {
         teamCount={teams.length}
         challengeCount={challenges.length}
         eventStatus={eventConfig.status}
-        adminEmail={adminEmail || "admin@cecheist.internal"}
+        adminEmail={adminEmail || "admin@test.com"}
         onLogoutRequest={() => setIsLogoutModalOpen(true)}
       >
         {activeTab === "overview" && (
@@ -399,7 +413,6 @@ export default function AdminPage() {
           />
         )}
 
-        {/* Feature Placeholders ready to build next */}
         {activeTab === "teams" && (
           <TeamManagement
             teams={teams}

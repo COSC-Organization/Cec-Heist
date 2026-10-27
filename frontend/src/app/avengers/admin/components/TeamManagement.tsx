@@ -69,6 +69,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [isSingleTeamModalOpen, setIsSingleTeamModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [teamFormName, setTeamFormName] = useState("");
+  const [teamFormPasscode, setTeamFormPasscode] = useState("HEIST2026");
   const [teamFormCaptainName, setTeamFormCaptainName] = useState("");
   const [teamFormCaptainEmail, setTeamFormCaptainEmail] = useState("");
   const [teamFormOperatives, setTeamFormOperatives] = useState("");
@@ -568,12 +569,15 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
       })),
     ];
 
+    const passcode = teamFormPasscode.trim() || "HEIST2026";
+
     if (editingTeam) {
       const updated: Team = {
         ...editingTeam,
         name,
         members,
         organization: teamFormOrg.trim() || undefined,
+        passcode,
       };
       onUpdateTeam(updated);
       onAddLog({
@@ -594,7 +598,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
         lastActive: "Just now",
         rank: teams.length + 1,
         organization: teamFormOrg.trim() || undefined,
-        passcode: "HEIST2026",
+        passcode,
       };
       onAddTeam(newTeam);
       onAddLog({
@@ -609,6 +613,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
     setIsSingleTeamModalOpen(false);
     setEditingTeam(null);
     setTeamFormName("");
+    setTeamFormPasscode("HEIST2026");
     setTeamFormCaptainName("");
     setTeamFormCaptainEmail("");
     setTeamFormOperatives("");
@@ -619,6 +624,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
   const handleStartEditTeam = (team: Team) => {
     setEditingTeam(team);
     setTeamFormName(team.name);
+    setTeamFormPasscode(team.passcode || "HEIST2026");
     const cap = team.members.find((m) => m.role === "Captain") || team.members[0];
     setTeamFormCaptainName(cap?.name || "");
     setTeamFormCaptainEmail(cap?.email || "");
@@ -1414,6 +1420,19 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                   required
                   className="cec-terminal-input"
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="cec-field-label">SQUAD PASSWORD / PASSCODE *</label>
+                <input
+                  type="text"
+                  value={teamFormPasscode}
+                  onChange={(e) => setTeamFormPasscode(e.target.value)}
+                  placeholder="e.g. HEIST2026"
+                  required
+                  className="cec-terminal-input"
+                />
+                <span className="field-hint-text">All members will use this squad name and password to enter the arena</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

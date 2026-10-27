@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `team_id` integer REFERENCES teams(id);

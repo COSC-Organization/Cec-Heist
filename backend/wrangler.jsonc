@@ -3,44 +3,15 @@
 	"name": "backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-11",
+	"vars": {
+		"FRONTEND_ORIGIN": "https://cec-heist.cosc25.in"
+	},
 	"d1_databases": [
 		{
 			"binding": "cec_heist_db",
 			"database_name": "cec-heist-db",
-			"database_id": "bf0cab09-5427-43b7-bf6a-1e6a2bba8075",
-
+			"database_id": "87ad255d-862a-4a25-bdfd-380da3bde672",
+			"migrations_dir": "drizzle"
 		}
 	]
-	// "compatibility_flags": [
-	//   "nodejs_compat"
-	// ],
-	// "vars": {
-	//   "MY_VAR": "my-variable"
-	// },
-	// "kv_namespaces": [
-	//   {
-	//     "binding": "MY_KV_NAMESPACE",
-	//     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-	//   }
-	// ],
-	// "r2_buckets": [
-	//   {
-	//     "binding": "MY_BUCKET",
-	//     "bucket_name": "my-bucket"
-	//   }
-	// ],
-	// "d1_databases": [
-	//   {
-	//     "binding": "MY_DB",
-	//     "database_name": "my-database",
-	//     "database_id": ""
-	//   }
-	// ],
-	// "ai": {
-	//   "binding": "AI"
-	// },
-	// "observability": {
-	//   "enabled": true,
-	//   "head_sampling_rate": 1
-	// }
 }

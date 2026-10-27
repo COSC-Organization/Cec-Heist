@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../components/PixelTransition";
+import { useAuth } from "../context/AuthContext";
 import MouseTrail from "../components/MouseTrail";
 
 // Web Audio API Sound Generators
@@ -112,6 +113,7 @@ export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
+  const { isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -140,18 +142,30 @@ export default function Home() {
 
     if (href === "/arena") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/arena");
+        return;
+      }
       triggerTransition("/arena", "left-to-right");
       return;
     }
 
     if (href === "/leaderboard") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/leaderboard");
+        return;
+      }
       triggerTransition("/leaderboard", "left-to-right");
       return;
     }
 
     if (href === "/profile") {
       setMenuOpen(false);
+      if (!isLoggedIn) {
+        openLoginModal("/profile");
+        return;
+      }
       triggerTransition("/profile", "left-to-right");
       return;
     }
@@ -167,6 +181,10 @@ export default function Home() {
   const handleEnterArena = (e: React.MouseEvent) => {
     e.preventDefault();
     playCyberClick();
+    if (!isLoggedIn) {
+      openLoginModal("/arena");
+      return;
+    }
     triggerTransition("/arena", "left-to-right");
   };
 

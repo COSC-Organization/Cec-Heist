@@ -8,7 +8,7 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   role: text('role', { enum: ['user', 'admin'] })
     .notNull()
-    .default('user'),
+    .default('admin'),
   createdAt: text('created_at')
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

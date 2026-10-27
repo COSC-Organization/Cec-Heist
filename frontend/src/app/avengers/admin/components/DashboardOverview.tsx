@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import {
   UsersIcon,
   FlagIcon,
@@ -37,12 +38,57 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const totalSolves = challenges.reduce((acc, c) => acc + (c.solves || 0), 0);
   const topTeams = [...teams].sort((a, b) => b.score - a.score).slice(0, 5);
 
+  const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking");
+
+  useEffect(() => {
+    api.health()
+      .then((res) => {
+        if (res.success) setBackendStatus("online");
+        else setBackendStatus("offline");
+      })
+      .catch(() => setBackendStatus("offline"));
+  }, []);
+
   return (
     <div className="admin-overview-container">
       {/* Overview Top Header Banner */}
       <div className="overview-header-row">
         <div>
-          <h2 className="overview-title">COMMAND OVERVIEW</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.25rem" }}>
+            <h2 className="overview-title" style={{ margin: 0 }}>COMMAND OVERVIEW</h2>
+            <span
+              style={{
+                fontFamily: "monospace",
+                fontSize: "0.75rem",
+                padding: "0.2rem 0.6rem",
+                borderRadius: "4px",
+                border:
+                  backendStatus === "online"
+                    ? "1px solid #10b981"
+                    : backendStatus === "checking"
+                    ? "1px solid #f59e0b"
+                    : "1px solid #ef4444",
+                color:
+                  backendStatus === "online"
+                    ? "#10b981"
+                    : backendStatus === "checking"
+                    ? "#f59e0b"
+                    : "#ef4444",
+                backgroundColor:
+                  backendStatus === "online"
+                    ? "rgba(16, 185, 129, 0.1)"
+                    : backendStatus === "checking"
+                    ? "rgba(245, 158, 11, 0.1)"
+                    : "rgba(239, 68, 68, 0.1)",
+              }}
+            >
+              {backendStatus === "online"
+                ? "● WORKER API & D1 ONLINE"
+                : backendStatus === "checking"
+                ? "○ VERIFYING BACKEND..."
+                : "✕ BACKEND STANDBY"}
+            </span>
+          </div>
           <p className="overview-subtitle">
             {"// REAL-TIME ARENA TELEMETRY & SYSTEM HEALTH"}
           </p>
