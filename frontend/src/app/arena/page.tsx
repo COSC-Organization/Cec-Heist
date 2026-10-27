@@ -254,7 +254,7 @@ const PLAY_CARDS: PlayCard[] = [
     number: "01",
     title: "BREACH PROTOCOL",
     desc: "Bypass perimeter surveillance and decrypt security keys to initiate sector access.",
-    points: 100,
+    points: 200,
     problemDescription:
       "Perimeter sensors detect incoming intrusion attempts on refinery sub-network 192.168.1.0/24. Analyze the telemetry log to identify the anomalous authentication token and recover the primary bypass security key.",
     hint: "Inspect the HTTP Authorization headers or look for standard base64 encoded strings in the transmission stream.",
@@ -268,7 +268,7 @@ const PLAY_CARDS: PlayCard[] = [
     number: "02",
     title: "CIPHER DECRYPT",
     desc: "Extract classified frequency ciphers from localized memory registers.",
-    points: 200,
+    points: 100,
     problemDescription:
       "A memory dump from the depot logistics terminal reveals an encrypted sequence obfuscated with multi-stage XOR and transposition tables. Reverse the key stream to decrypt the master dispatch authorization cipher.",
     hint: "The XOR key is 4 bytes long. Look for standard ASCII letter frequencies or known plaintext prefixes like 'FLAG'.",
@@ -282,7 +282,7 @@ const PLAY_CARDS: PlayCard[] = [
     number: "03",
     title: "NEURAL OVERRIDE",
     desc: "Deploy automated payload routines to disrupt command complex sentry units.",
-    points: 350,
+    points: 250,
     problemDescription:
       "Command complex sentries communicate via a custom binary protocol on port 8443. Craft an exception-triggering payload to force a crash dump and extract the supervisor credentials from memory.",
     hint: "Check boundary checks on packet lengths. An integer wrap allows bypassing the memory fence.",
@@ -296,7 +296,7 @@ const PLAY_CARDS: PlayCard[] = [
     number: "04",
     title: "VAULT EXTRACTION",
     desc: "Infiltrate fortified airborne vault and secure primary heist asset.",
-    points: 500,
+    points: 450,
     problemDescription:
       "The fortified vault biometric lock verifies cryptographic signatures using elliptic curve cryptography. Reconstruct the private signing key from leaked nonce values to disengage the vault seal.",
     hint: "The random number generator reuses low entropy seeds. Solve the hidden number problem using lattice reduction.",
@@ -357,7 +357,7 @@ export default function ArenaPage() {
                   flag: c.flag || "FLAG{cecheist_override}",
                   status: "PENDING",
                   pic: c.pic || (c.facilityId === "factory" ? "/arena/pic1.png" : c.facilityId === "logistics" ? "/arena/pic2.png" : c.facilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png"),
-                  facilityId: c.facilityId || "factory",
+                  facilityId: c.facilityId || (c.level === 2 ? "logistics" : c.level === 3 ? "command" : c.level === 4 ? "vault" : "factory"),
                 }));
                 setAllCards(mapped);
               }
