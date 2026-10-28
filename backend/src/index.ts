@@ -9,6 +9,9 @@ import loginRoutes from './routes/auth/login.routes'
 import challengesRoutes from './routes/challenges.routes'
 import type { CloudflareBindings } from './types'
 import refreshRoutes from './routes/auth/refresh.routes'
+import challengeAssignmentRoutes from './routes/challenge-assignment.routes'
+import challengeSolveRoutes from './routes/challenge-solve.routes'
+import levelUnlockRoutes from './routes/level-unlock.routes'
 
 const app = new Hono<{ Bindings: CloudflareBindings }>()
 
@@ -61,4 +64,14 @@ app.route('/api/challenges', challengesRoutes)
 // Refresh token routes
 app.route('/api/auth/refresh', refreshRoutes)
 
+// Challenge assignment routes
+app.route('/api/challenge-assignments', challengeAssignmentRoutes)
+
+// Challenge solve routes
+app.route('/api/challenge-solves', challengeSolveRoutes)
+
+// Level unlock routes
+app.route('/api/level-unlocks', levelUnlockRoutes)
+
+export { app }
 export default app

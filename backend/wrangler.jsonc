@@ -8,6 +8,7 @@
 			"binding": "cec_heist_db",
 			"database_name": "cec-heist-db",
 			"database_id": "bf0cab09-5427-43b7-bf6a-1e6a2bba8075",
+			"migrations_dir": "drizzle"
 
 		}
 	]
