@@ -8,6 +8,41 @@ import { teams } from '../../db/schema/teams'
 import type { CloudflareBindings } from '../../types'
 import { getJwtSecret } from '../../utils/jwt'
 
+/**
+ * Robust password verification with casing and capitalization tolerance.
+ * Handles exact passwords, lowercase, uppercase, and TitleCase
+ * (e.g. mobile auto-capitalization or UI capitalization differences).
+ */
+async function verifyPasswordWithTolerance(
+  inputPassword: string,
+  storedHash: string
+): Promise<boolean> {
+  if (!storedHash || !inputPassword) return false
+
+  const candidates = Array.from(
+    new Set([
+      inputPassword,
+      inputPassword.toLowerCase(),
+      inputPassword.toUpperCase(),
+      inputPassword.charAt(0).toUpperCase() + inputPassword.slice(1),
+      inputPassword.charAt(0).toLowerCase() + inputPassword.slice(1),
+      inputPassword.charAt(0).toUpperCase() + inputPassword.slice(1).toLowerCase(),
+    ])
+  )
+
+  for (const cand of candidates) {
+    try {
+      if (await compare(cand, storedHash)) {
+        return true
+      }
+    } catch {
+      // Continue to next candidate
+    }
+  }
+
+  return false
+}
+
 const loginRoutes = new Hono<{ Bindings: CloudflareBindings }>()
 
 loginRoutes.post('/', async (c) => {
@@ -104,20 +139,7 @@ loginRoutes.post('/', async (c) => {
     }
 
     if (team && team.passwordHash) {
-      let isMatch = false
-      try {
-        isMatch = await compare(password, team.passwordHash)
-        // Fallback for auto-capitalization (e.g. mobile keyboards or caps lock)
-        if (!isMatch && password !== password.toLowerCase()) {
-          isMatch = await compare(password.toLowerCase(), team.passwordHash)
-        }
-        if (!isMatch && password !== password.toUpperCase()) {
-          isMatch = await compare(password.toUpperCase(), team.passwordHash)
-        }
-      } catch (err) {
-        console.warn('Password comparison error for team:', team.id, err)
-        isMatch = false
-      }
+      const isMatch = await verifyPasswordWithTolerance(password, team.passwordHash)
 
       if (isMatch) {
         const now = Math.floor(Date.now() / 1000)
@@ -190,19 +212,7 @@ loginRoutes.post('/', async (c) => {
     }
 
     if (adminUser && adminUser.passwordHash) {
-      let isMatch = false
-      try {
-        isMatch = await compare(password, adminUser.passwordHash)
-        if (!isMatch && password !== password.toLowerCase()) {
-          isMatch = await compare(password.toLowerCase(), adminUser.passwordHash)
-        }
-        if (!isMatch && password !== password.toUpperCase()) {
-          isMatch = await compare(password.toUpperCase(), adminUser.passwordHash)
-        }
-      } catch (err) {
-        console.warn('Password comparison error for admin:', adminUser.id, err)
-        isMatch = false
-      }
+      const isMatch = await verifyPasswordWithTolerance(password, adminUser.passwordHash)
 
       if (isMatch) {
         const now = Math.floor(Date.now() / 1000)
