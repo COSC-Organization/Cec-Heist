@@ -31,7 +31,7 @@ loginRoutes.post('/', async (c) => {
     ''
 
   const identifier = rawIdentifier.trim()
-  const password = typeof body.password === 'string' ? body.password : ''
+  const password = typeof body.password === 'string' ? body.password.trim() : ''
 
   if (!identifier || !password) {
     return c.json(
@@ -57,12 +57,24 @@ loginRoutes.post('/', async (c) => {
     const normalizedIdentifier = identifier.toLowerCase()
 
     // 1. Check if the identifier belongs to an Admin in `users`
-    const adminUser = await db.query.users.findFirst({
+    let adminUser = await db.query.users.findFirst({
       where: eq(sql`lower(${users.email})`, normalizedIdentifier),
     })
 
+    if (!adminUser && !normalizedIdentifier.includes('@')) {
+      adminUser = await db.query.users.findFirst({
+        where: eq(
+          sql`lower(${users.email})`,
+          `${normalizedIdentifier}@cecheist.internal`
+        ),
+      })
+    }
+
     if (adminUser) {
-      const isMatch = await compare(password, adminUser.passwordHash)
+      let isMatch = await compare(password, adminUser.passwordHash)
+      if (!isMatch && password !== password.toLowerCase()) {
+        isMatch = await compare(password.toLowerCase(), adminUser.passwordHash)
+      }
       if (isMatch) {
         const now = Math.floor(Date.now() / 1000)
 
@@ -109,12 +121,61 @@ loginRoutes.post('/', async (c) => {
     }
 
     // 2. Check if identifier belongs to a Team in `teams`
-    const team = await db.query.teams.findFirst({
+    // 2a. Match exact team_name (case-insensitive)
+    let team = await db.query.teams.findFirst({
       where: eq(sql`lower(${teams.teamName})`, normalizedIdentifier),
     })
 
-    if (team) {
-      const isMatch = await compare(password, team.passwordHash)
+    // 2b. Match by normalized spaces / underscores / hyphens
+    if (!team) {
+      const stripped = normalizedIdentifier.replace(/[\s_-]/g, '')
+      if (stripped.length > 0) {
+        team = await db.query.teams.findFirst({
+          where: eq(
+            sql`replace(replace(replace(lower(${teams.teamName}), '_', ''), ' ', ''), '-', '')`,
+            stripped
+          ),
+        })
+      }
+    }
+
+    // 2c. Match by numeric team ID (e.g. "61", "TM-61", "TM-061")
+    if (!team) {
+      const numMatch = identifier.match(/^(?:TM-?)?(\d+)$/i)
+      if (numMatch) {
+        const teamIdNum = parseInt(numMatch[1], 10)
+        if (teamIdNum > 0) {
+          team = await db.query.teams.findFirst({
+            where: eq(teams.id, teamIdNum),
+          })
+        }
+      }
+    }
+
+    // 2d. Match by team email format (e.g. "kauhsik@team.internal" or "kauhsik@cec.heist")
+    if (!team && normalizedIdentifier.includes('@')) {
+      const emailPrefix = normalizedIdentifier.split('@')[0].replace(/[\s_-]/g, '')
+      if (emailPrefix.length > 0) {
+        team = await db.query.teams.findFirst({
+          where: eq(
+            sql`replace(replace(replace(lower(${teams.teamName}), '_', ''), ' ', ''), '-', '')`,
+            emailPrefix
+          ),
+        })
+      }
+    }
+
+    if (team && team.passwordHash) {
+      let isMatch = await compare(password, team.passwordHash)
+
+      // Fallback for auto-capitalization (e.g. mobile keyboards or caps lock)
+      if (!isMatch && password !== password.toLowerCase()) {
+        isMatch = await compare(password.toLowerCase(), team.passwordHash)
+      }
+      if (!isMatch && password !== password.toUpperCase()) {
+        isMatch = await compare(password.toUpperCase(), team.passwordHash)
+      }
+
       if (isMatch) {
         const now = Math.floor(Date.now() / 1000)
         const teamEmail = `${team.teamName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}@team.internal`
