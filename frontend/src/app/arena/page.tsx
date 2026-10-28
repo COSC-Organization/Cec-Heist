@@ -1177,27 +1177,19 @@ export default function ArenaPage() {
                     return (
                       <div
                         key={card.id}
-                        className={`facility-grid-card box-${idx + 1} ${
-                          isCardCompleted ? "card-completed" : ""
-                        }`}
+                        className={`facility-column-box box-${idx + 1}`}
                         onClick={() => {
                           openChallenge(card.id);
                         }}
                         onMouseEnter={playCyberHover}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            openChallenge(card.id);
-                          }
-                        }}
-                        title={`Access Objective: ${card.title}`}
+                        style={{ cursor: "pointer" }}
                       >
-                        <div className="grid-card-img-wrap">
+                        <span className="box-corner-num">{card.number}</span>
+                        <div className="playcard-img-wrap">
                           <img
                             src={cardImg}
-                            alt={card.title}
-                            className="grid-card-img"
+                            alt={`Card ${card.number}`}
+                            className="playcard-img"
                             onError={(e) => {
                               (e.target as HTMLElement).style.opacity = "0";
                             }}
@@ -1205,15 +1197,42 @@ export default function ArenaPage() {
                               (e.target as HTMLElement).style.opacity = "1";
                             }}
                           />
-                          {isCardCompleted && (
-                            <div className="grid-card-completed-badge font-pixel">
-                              ✓ COMPLETED
-                            </div>
-                          )}
                         </div>
-                        <div className="grid-card-title-bar">
-                          <h4 className="grid-card-title font-pixel">{card.title}</h4>
+                        <div className="playcard-body">
+                          <div className="playcard-meta-bar">
+                            <span
+                              className={`playcard-difficulty-tag diff-${card.difficulty || "easy"}`}
+                            >
+                              {(card.difficulty || "easy").toUpperCase()}
+                            </span>
+                            <span className="playcard-points-tag">
+                              {card.points} PTS
+                            </span>
+                          </div>
+                          <h4 className="playcard-title">{card.title}</h4>
+                          <div className="playcard-status-row">
+                            <span className="status-label">STATUS</span>
+                            <span
+                              className={`playcard-status-badge ${
+                                isCardCompleted
+                                  ? "status-completed"
+                                  : "status-pending"
+                              }`}
+                            >
+                              ● {isCardCompleted ? "COMPLETED" : "PENDING"}
+                            </span>
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          className="playcard-enter-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openChallenge(card.id);
+                          }}
+                        >
+                          [ ENTER ]
+                        </button>
                       </div>
                     );
                   })}

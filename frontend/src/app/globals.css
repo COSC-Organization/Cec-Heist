@@ -2127,13 +2127,10 @@ button img,
 
 .facility-quad-columns {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
   width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-  align-content: center;
-  box-sizing: border-box;
+  height: 100%;
 }
 
 .facility-grid-card {
