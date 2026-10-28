@@ -174,6 +174,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     const findIndex = (keywords: string[]) =>
       cleanHeaders.findIndex((h) => keywords.some((k) => h.includes(k)));
 
+    // Priorities: Team leader's email takes precedence over team name
+    const leaderEmailIdx = findIndex([
+      "teamleaderemail",
+      "leaderemail",
+      "teamleademail",
+      "captainemail",
+      "leademail",
+      "emailaddress",
+      "contactemail",
+      "email",
+      "mail",
+    ]);
     const nameIdx = findIndex(["teamname", "squadname", "team", "squad", "name"]);
     const captainNameIdx = findIndex([
       "captainname",
@@ -181,13 +193,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       "captain",
       "leader",
       "lead",
-    ]);
-    const captainEmailIdx = findIndex([
-      "captainemail",
-      "leaderemail",
-      "email",
-      "mail",
-      "contactemail",
     ]);
     const membersIdx = findIndex([
       "operatives",
@@ -213,34 +218,48 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     dataRows.forEach((row, rowIdx) => {
       if (row.length === 0 || row.every((c) => c === "")) return;
 
-      const rawName = (nameIdx !== -1 ? row[nameIdx] : row[0]) || "";
-      const rawCaptain =
-        (captainNameIdx !== -1 ? row[captainNameIdx] : row[1]) || "Squad Lead";
       const rawEmail =
-        (captainEmailIdx !== -1 ? row[captainEmailIdx] : row[2]) || "";
+        (leaderEmailIdx !== -1 ? row[leaderEmailIdx] : "") || "";
+      const rawName = (nameIdx !== -1 ? row[nameIdx] : "") || "";
+      const rawCaptain =
+        (captainNameIdx !== -1 ? row[captainNameIdx] : "") || "";
       const rawMembers = membersIdx !== -1 ? row[membersIdx] : "";
       const rawOrg = orgIdx !== -1 ? row[orgIdx] : "";
       const rawPass = passcodeIdx !== -1 ? row[passcodeIdx] : "HEIST2026";
 
-      const name = rawName.trim();
+      // Scan row for email if header didn't locate one
+      let detectedEmail = rawEmail.trim().toLowerCase();
+      if (!detectedEmail || !detectedEmail.includes("@")) {
+        const foundEmail = row.find(
+          (c) => typeof c === "string" && c.includes("@") && c.includes(".")
+        );
+        if (foundEmail) detectedEmail = foundEmail.trim().toLowerCase();
+      }
+
+      // PRIMARY: Instead of taking team name, take team leader's email as the credential identifier
+      const fallbackName = rawName.trim() || (row.length > 0 && !row[0].includes("@") ? row[0].trim() : "");
+      const primaryIdentifier = detectedEmail || fallbackName;
+
+      const captainName =
+        rawCaptain.trim() ||
+        (detectedEmail ? detectedEmail.split("@")[0] : fallbackName || "Squad Lead");
+
       const warnings: string[] = [];
 
-      if (!name) {
-        warnings.push("Missing squad name");
+      if (!primaryIdentifier) {
+        warnings.push("Missing team leader email");
+      } else if (detectedEmail && !detectedEmail.includes("@")) {
+        warnings.push("Invalid team leader email format");
       }
 
-      if (existingNames.has(name.toLowerCase())) {
-        warnings.push("Squad already exists in database");
+      if (primaryIdentifier && existingNames.has(primaryIdentifier.toLowerCase())) {
+        warnings.push("Team leader email already exists in database");
       }
 
-      if (seenInBatch.has(name.toLowerCase())) {
-        warnings.push("Duplicate squad name in file");
-      } else if (name) {
-        seenInBatch.add(name.toLowerCase());
-      }
-
-      if (!rawEmail || !rawEmail.includes("@")) {
-        warnings.push("No valid captain email provided");
+      if (primaryIdentifier && seenInBatch.has(primaryIdentifier.toLowerCase())) {
+        warnings.push("Duplicate team leader email in file");
+      } else if (primaryIdentifier) {
+        seenInBatch.add(primaryIdentifier.toLowerCase());
       }
 
       // Parse operatives from members column or extra columns
@@ -249,16 +268,30 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         ops = rawMembers
           .split(/[,;\n]/)
           .map((m) => m.trim())
-          .filter((m) => m.length > 0 && m.toLowerCase() !== rawCaptain.toLowerCase());
+          .filter(
+            (m) =>
+              m.length > 0 &&
+              m.toLowerCase() !== captainName.toLowerCase() &&
+              m.toLowerCase() !== primaryIdentifier.toLowerCase()
+          );
       } else {
-        // Look for columns 3, 4, 5 if not mapped
-        for (let c = 3; c < row.length; c++) {
+        // Look for extra columns if not mapped
+        for (let c = 0; c < row.length; c++) {
+          if (
+            c === leaderEmailIdx ||
+            c === nameIdx ||
+            c === captainNameIdx ||
+            c === orgIdx ||
+            c === passcodeIdx
+          ) {
+            continue;
+          }
           const val = row[c]?.trim();
           if (
             val &&
-            c !== orgIdx &&
-            c !== passcodeIdx &&
-            val.toLowerCase() !== rawCaptain.toLowerCase()
+            val.toLowerCase() !== captainName.toLowerCase() &&
+            val.toLowerCase() !== primaryIdentifier.toLowerCase() &&
+            !val.includes("@")
           ) {
             ops.push(val);
           }
@@ -267,15 +300,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       parsed.push({
         id: `TM-${Date.now().toString(36).toUpperCase()}-${rowIdx + 1}`,
-        name: name || `UNNAMED_SQUAD_${rowIdx + 1}`,
-        captainName: rawCaptain.trim(),
-        captainEmail: rawEmail.trim(),
+        name: primaryIdentifier || `UNNAMED_LEADER_${rowIdx + 1}`,
+        captainName: captainName,
+        captainEmail: detectedEmail || (fallbackName.includes("@") ? fallbackName : ""),
         operatives: ops,
-        organization: rawOrg.trim() || undefined,
+        organization:
+          rawOrg.trim() ||
+          (fallbackName && fallbackName !== primaryIdentifier ? fallbackName : undefined),
         passcode: rawPass.trim() || "HEIST2026",
         isValid: warnings.length === 0,
         warnings,
-        selected: warnings.length === 0 || !warnings.includes("Missing squad name"),
+        selected:
+          warnings.length === 0 ||
+          !warnings.includes("Missing team leader email"),
       });
     });
 
@@ -387,7 +424,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       const headers = hasHeaderKeywords
         ? rows[0]
-        : ["Squad Name", "Captain Name", "Captain Email", "Operatives", "Organization"];
+        : ["Team Leader Email", "Passcode", "Captain Name", "Operatives", "Organization"];
       const dataRows = hasHeaderKeywords ? rows.slice(1) : rows;
 
       const parsed = normalizeRowsToTeams(headers, dataRows);
@@ -507,11 +544,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   // Download Sample Template CSV
   const handleDownloadTemplate = () => {
-    const sampleCSV = `Squad Name,Captain Name,Captain Email,Operative 1,Operative 2,Operative 3,Organization,Passcode
-Zero Day Syndicate,Alex Mercer,alex@zeroday.io,Elena Rostova,Kaelen Voss,,CyberSec Institute,HEIST2026
-Byte Bandits,Marcus Shaw,marcus@bytebandits.net,Samantha Cross,Devon Reed,,Tech University,HEIST2026
-Red Team Six,Jax Thorne,jax@redteam6.sec,Nadia Belova,Tariq Mansour,,Security Lab,HEIST2026
-Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineering College,HEIST2026`;
+    const sampleCSV = `Team Leader Email,Passcode,Captain Name,Operative 1,Operative 2,Operative 3,Organization
+leader1@zeroday.io,HEIST2026,Alex Mercer,Elena Rostova,Kaelen Voss,,CyberSec Institute
+leader2@bytebandits.net,HEIST2026,Marcus Shaw,Samantha Cross,Devon Reed,,Tech University
+leader3@redteam6.sec,HEIST2026,Jax Thorne,Nadia Belova,Tariq Mansour,,Security Lab
+leader4@phantom.cc,HEIST2026,Viktor Gray,Chloe Bennett,Rohan Patel,,Engineering College`;
 
     const blob = new Blob([sampleCSV], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1227,6 +1264,9 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                       <p className="font-pixel text-white text-base tracking-wider mb-1">
                         DRAG &amp; DROP YOUR EXCEL OR CSV SPREADSHEET HERE
                       </p>
+                      <p className="font-mono text-xs text-cyan mb-1">
+                        🔑 Teams will be identified and log in using: <strong>Team Leader's Email + Password</strong>
+                      </p>
                       <p className="font-mono text-xs text-muted">
                         Supports <strong>.xlsx, .xls, .csv, .tsv</strong> up to 10MB
                       </p>
@@ -1287,7 +1327,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                     rows={6}
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
-                    placeholder={`Squad Name\tCaptain Name\tCaptain Email\tOperative 1\tOperative 2\tOrganization\nZero Day Syndicate\tAlex Mercer\talex@zeroday.io\tElena Rostova\tKaelen Voss\tTech Univ\nByte Bandits\tMarcus Shaw\tmarcus@byte.io\tSam Cross\tDevon Reed\tMIT College`}
+                    placeholder={`Team Leader Email\tPasscode\tCaptain Name\tOperative 1\tOperative 2\tOrganization\nalex@zeroday.io\tHEIST2026\tAlex Mercer\tElena Rostova\tKaelen Voss\tTech Univ\nmarcus@byte.io\tHEIST2026\tMarcus Shaw\tSam Cross\tDevon Reed\tMIT College`}
                     className="cec-terminal-textarea font-mono text-xs"
                     style={{ minHeight: "120px" }}
                   />
@@ -1342,7 +1382,7 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
                       <thead>
                         <tr>
                           <th style={{ width: "40px", textAlign: "center" }}>✓</th>
-                          <th>SQUAD NAME</th>
+                          <th>TEAM LEADER EMAIL (CREDENTIAL)</th>
                           <th>CAPTAIN</th>
                           <th>EMAIL</th>
                           <th>OPERATIVES</th>

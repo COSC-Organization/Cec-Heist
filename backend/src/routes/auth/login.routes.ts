@@ -138,6 +138,16 @@ loginRoutes.post('/', async (c) => {
       }
     }
 
+    // 1d-2. If teamName stored is an email (e.g. "leader@gmail.com") and input is the handle (e.g. "leader")
+    if (!team && !normalizedIdentifier.includes('@') && stripped.length >= 3) {
+      team = await db.query.teams.findFirst({
+        where: eq(
+          sql`replace(replace(replace(lower(substr(${teams.teamName}, 1, case when instr(${teams.teamName}, '@') > 0 then instr(${teams.teamName}, '@') - 1 else length(${teams.teamName}) end)), '_', ''), ' ', ''), '-', '')`,
+          stripped
+        ),
+      })
+    }
+
     // 1e. Match by character transposition / anagram match for typos (e.g. "Kauhsik" vs "Kaushik")
     if (!team && stripped.length >= 4) {
       const candidateTeams = await db
@@ -166,7 +176,9 @@ loginRoutes.post('/', async (c) => {
 
       if (isMatch) {
         const now = Math.floor(Date.now() / 1000)
-        const teamEmail = `${team.teamName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}@team.internal`
+        const teamEmail = team.teamName.includes('@')
+          ? team.teamName
+          : `${team.teamName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}@team.internal`
 
         const accessToken = await sign(
           {

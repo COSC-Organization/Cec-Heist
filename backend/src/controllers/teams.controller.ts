@@ -54,15 +54,21 @@ export async function createTeam(c: AppContext) {
     return c.json({ success: false, message: 'Invalid JSON body' }, 400)
   }
 
+  const rawIdentifier = (
+    (typeof body.team_name === 'string' && body.team_name) ||
+    (typeof body.email === 'string' && body.email) ||
+    (typeof body.leader_email === 'string' && body.leader_email) ||
+    ''
+  ).trim()
+
   if (
-    typeof body.team_name !== 'string' ||
-    !body.team_name.trim() ||
-    body.team_name.trim().length > 100
+    !rawIdentifier ||
+    rawIdentifier.length > 254
   ) {
-    return c.json({ success: false, message: 'team_name must be 1–100 characters' }, 400)
+    return c.json({ success: false, message: 'team_name or email must be 1–254 characters' }, 400)
   }
 
-  const teamName = body.team_name.trim()
+  const teamName = rawIdentifier
   const password = typeof body.password === 'string' ? body.password.trim() : ''
 
   if (!password || password.length < 4 || new TextEncoder().encode(password).length > 72) {
@@ -163,14 +169,24 @@ export async function createTeamsBulk(c: AppContext) {
   const errors: Array<{ team_name?: string; reason: string }> = []
 
   for (const item of inputTeams) {
-    const teamName = typeof item?.team_name === 'string' ? item.team_name.trim() : ''
+    const rawIdentifier = (
+      (typeof item?.email === 'string' && item.email) ||
+      (typeof item?.leader_email === 'string' && item.leader_email) ||
+      (typeof item?.team_name === 'string' && item.team_name) ||
+      ''
+    ).trim()
     const password = typeof item?.password === 'string' ? item.password.trim() : 'HEIST2026'
     const score = Number.isSafeInteger(item?.score) && item.score >= 0 ? item.score : 0
 
-    if (!teamName || teamName.length > 100) {
-      errors.push({ team_name: teamName, reason: 'Invalid team name' })
+    if (!rawIdentifier || rawIdentifier.length > 254) {
+      errors.push({
+        team_name: rawIdentifier,
+        reason: 'Team identifier must be 1–254 characters',
+      })
       continue
     }
+
+    const teamName = rawIdentifier
 
     try {
       const existing = await db.query.teams.findFirst({
@@ -318,6 +334,17 @@ export async function uploadTeamsCSV(c: AppContext) {
   const firstRow = rows[0].map((cell) =>
     cell.toLowerCase().replace(/[\s_\-"']/g, '')
   )
+  const leaderEmailKeywords = [
+    'teamleaderemail',
+    'leaderemail',
+    'teamleademail',
+    'captainemail',
+    'leademail',
+    'emailaddress',
+    'contactemail',
+    'email',
+    'mail',
+  ]
   const teamNameKeywords = [
     'teamname',
     'team',
@@ -337,21 +364,32 @@ export async function uploadTeamsCSV(c: AppContext) {
   ]
   const scoreKeywords = ['score', 'points', 'pts']
 
+  let leaderEmailIdx = firstRow.findIndex((c) => leaderEmailKeywords.includes(c))
   let teamNameIdx = firstRow.findIndex((c) => teamNameKeywords.includes(c))
   let passwordIdx = firstRow.findIndex((c) => passwordKeywords.includes(c))
   let scoreIdx = firstRow.findIndex((c) => scoreKeywords.includes(c))
 
+  // Prioritize team leader's email over team name
+  const primaryIdx = leaderEmailIdx !== -1 ? leaderEmailIdx : teamNameIdx
+
   let dataRows: string[][]
-  if (teamNameIdx !== -1) {
+  if (primaryIdx !== -1 || passwordIdx !== -1 || scoreIdx !== -1) {
     dataRows = rows.slice(1)
     if (passwordIdx === -1 && rows[0].length > 1) {
       // If header doesn't explicitly match password, check if 2nd column or last column
-      passwordIdx = teamNameIdx === 0 && rows[0].length === 2 ? 1 : rows[0].length - 1
+      passwordIdx = primaryIdx === 0 && rows[0].length === 2 ? 1 : rows[0].length - 1
     }
   } else {
-    // Headerless CSV: col 0 is team_name, col 1 is password if present
-    teamNameIdx = 0
-    passwordIdx = rows[0].length > 1 ? 1 : -1
+    // Headerless CSV: detect if col 0 or 1 contains '@'
+    const col0HasEmail = rows[0][0] && rows[0][0].includes('@')
+    const col1HasEmail = rows[0][1] && rows[0][1].includes('@')
+    if (col1HasEmail && !col0HasEmail) {
+      leaderEmailIdx = 1
+      passwordIdx = 0
+    } else {
+      leaderEmailIdx = 0
+      passwordIdx = rows[0].length > 1 ? 1 : -1
+    }
     dataRows = rows
   }
 
@@ -372,9 +410,21 @@ export async function uploadTeamsCSV(c: AppContext) {
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i]
-    const rowNum = teamNameIdx !== -1 ? i + 2 : i + 1
+    const rowNum = (primaryIdx !== -1 || passwordIdx !== -1 || scoreIdx !== -1) ? i + 2 : i + 1
 
-    const teamName = (row[teamNameIdx] || '').trim()
+    // Extract team leader email first; fallback to team name or row[0]
+    let teamName = ''
+    if (leaderEmailIdx !== -1 && row[leaderEmailIdx]?.trim()) {
+      teamName = row[leaderEmailIdx].trim().toLowerCase()
+    } else if (teamNameIdx !== -1 && row[teamNameIdx]?.trim()) {
+      teamName = row[teamNameIdx].trim()
+    } else if (primaryIdx !== -1 && row[primaryIdx]?.trim()) {
+      teamName = row[primaryIdx].trim()
+    } else if (row.length > 0) {
+      const emailCell = row.find((c) => typeof c === 'string' && c.includes('@') && c.includes('.'))
+      teamName = emailCell ? emailCell.trim().toLowerCase() : (row[0] || '').trim()
+    }
+
     let password = (
       passwordIdx !== -1 && row[passwordIdx] ? row[passwordIdx] : ''
     ).trim()
@@ -387,15 +437,15 @@ export async function uploadTeamsCSV(c: AppContext) {
     }
 
     if (!teamName) {
-      errors.push({ row: rowNum, reason: 'Empty team name' })
+      errors.push({ row: rowNum, reason: 'Empty team leader email / identifier' })
       continue
     }
 
-    if (teamName.length > 100) {
+    if (teamName.length > 254) {
       errors.push({
         row: rowNum,
         team_name: teamName,
-        reason: 'Team name exceeds 100 characters',
+        reason: 'Team identifier exceeds 254 characters',
       })
       continue
     }
@@ -405,7 +455,7 @@ export async function uploadTeamsCSV(c: AppContext) {
       errors.push({
         row: rowNum,
         team_name: teamName,
-        reason: 'Duplicate team name in uploaded CSV batch',
+        reason: 'Duplicate team leader email in uploaded CSV batch',
       })
       continue
     }
@@ -420,7 +470,7 @@ export async function uploadTeamsCSV(c: AppContext) {
         errors.push({
           row: rowNum,
           team_name: teamName,
-          reason: 'Team name already exists in database',
+          reason: 'Team leader email already exists in database',
         })
         continue
       }
