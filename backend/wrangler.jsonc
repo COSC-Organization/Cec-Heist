@@ -3,9 +3,16 @@
 	"name": "backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-11",
+	"workers_dev": true,
 	"vars": {
 		"FRONTEND_ORIGIN": "https://cec-heist.cosc25.in"
 	},
+	"routes": [
+		{
+			"pattern": "cec-heist-backend.cosc25.in",
+			"custom_domain": true
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "cec_heist_db",

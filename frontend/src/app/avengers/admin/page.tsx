@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./admin.css";
 
 import { AdminLogin } from "./components/AdminLogin";
@@ -246,6 +246,33 @@ export default function AdminPage() {
     });
   };
 
+  const handleRefreshTeams = useCallback(async () => {
+    try {
+      const res = await api.teams.getAll();
+      if (res.success && Array.isArray(res.data)) {
+        const mappedTeams: Team[] = res.data.map((t, idx) => ({
+          id: String(t.id),
+          name: t.team_name,
+          score: t.score ?? 0,
+          members: [
+            {
+              name: t.team_name,
+              email: `${t.team_name.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
+              role: "Captain",
+            },
+          ],
+          solvedCount: 0,
+          registrationStatus: "VERIFIED",
+          lastActive: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "Just now",
+          rank: idx + 1,
+        }));
+        setTeams(mappedTeams);
+      }
+    } catch (err) {
+      console.warn("Failed to reload teams from DB:", err);
+    }
+  }, []);
+
   const handleUpdateTeam = (updated: Team) => {
     setTeams((prev) => {
       const next = prev.map((t) => (t.id === updated.id ? updated : t));
@@ -408,6 +435,7 @@ export default function AdminPage() {
             onDeleteTeam={handleDeleteTeam}
             onDeleteAllTeams={handleDeleteAllTeams}
             onAddLog={handleAddLog}
+            onRefreshTeams={handleRefreshTeams}
           />
         )}
 

@@ -82,6 +82,16 @@ export interface UpdateTeamPayload {
   score?: number;
 }
 
+export interface BulkTeamUploadResponse {
+  success: boolean;
+  message: string;
+  totalRows?: number;
+  createdCount?: number;
+  skippedCount?: number;
+  data?: Array<{ id: number; team_name: string; score: number }>;
+  errors?: Array<{ row?: number; team_name?: string; reason: string }>;
+}
+
 export interface CreateChallengePayload {
   title: string;
   description: string;
@@ -401,6 +411,31 @@ export const api = {
           body: JSON.stringify({ teams: teamsList }),
         }
       ),
+
+    uploadCsv: (csvData: File | FormData | string) => {
+      let body: BodyInit;
+      const headers: Record<string, string> = {};
+
+      if (csvData instanceof FormData) {
+        body = csvData;
+      } else if (csvData instanceof File) {
+        const formData = new FormData();
+        formData.append("file", csvData);
+        body = formData;
+      } else if (typeof csvData === "string") {
+        body = csvData;
+        headers["Content-Type"] = "text/csv";
+      } else {
+        body = String(csvData);
+        headers["Content-Type"] = "text/csv";
+      }
+
+      return apiRequest<BulkTeamUploadResponse>("/api/teams/bulk-csv", {
+        method: "POST",
+        headers,
+        body,
+      });
+    },
 
     update: (id: number, payload: UpdateTeamPayload) =>
       apiRequest<TeamResponse>(`/api/teams/${id}`, {

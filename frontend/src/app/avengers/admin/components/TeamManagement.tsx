@@ -27,6 +27,7 @@ interface TeamManagementProps {
   onDeleteTeam: (id: string) => void;
   onDeleteAllTeams: () => void;
   onAddLog: (log: ActivityLog) => void;
+  onRefreshTeams?: () => Promise<void>;
 }
 
 interface ParsedTeamRow {
@@ -50,6 +51,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   onDeleteTeam,
   onDeleteAllTeams,
   onAddLog,
+  onRefreshTeams,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -62,9 +64,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [bulkActiveTab, setBulkActiveTab] = useState<"file" | "paste">("file");
   const [pastedText, setPastedText] = useState("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedPreviewRows, setParsedPreviewRows] = useState<ParsedTeamRow[]>([]);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [isIngesting, setIsIngesting] = useState(false);
 
   // Single Team Add/Edit State
   const [isSingleTeamModalOpen, setIsSingleTeamModalOpen] = useState(false);
@@ -307,6 +311,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSelectedFile(file);
     setSelectedFileName(file.name);
     setBulkError(null);
     setIsParsing(true);
@@ -405,58 +410,99 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setParsedPreviewRows((prev) => prev.map((r) => ({ ...r, selected: select })));
   };
 
-  // Confirm Ingestion of Parsed Squads
-  const handleConfirmBulkIngestion = () => {
+  // Confirm Ingestion of Parsed Squads directly into Database
+  const handleConfirmBulkIngestion = async () => {
     const selectedRows = parsedPreviewRows.filter((r) => r.selected);
     if (selectedRows.length === 0) {
       setBulkError("No squads selected for import.");
       return;
     }
 
-    const newTeams: Team[] = selectedRows.map((r, idx) => {
-      const members: TeamMember[] = [
-        {
-          name: r.captainName,
-          email: r.captainEmail || `${r.name.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
-          role: "Captain",
-        },
-      ];
+    setIsIngesting(true);
+    setBulkError(null);
 
-      r.operatives.forEach((op, opIdx) => {
-        members.push({
-          name: op,
-          email: `${op.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
-          role: "Operative",
+    try {
+      // Build clean CSV payload with standard header for direct DB ingestion
+      const csvHeader = "team_name,password\n";
+      const csvBody = selectedRows
+        .map((r) => {
+          const safeName = `"${r.name.replace(/"/g, '""')}"`;
+          const safePass = `"${(r.passcode || "HEIST2026").replace(/"/g, '""')}"`;
+          return `${safeName},${safePass}`;
+        })
+        .join("\n");
+
+      const csvPayload = csvHeader + csvBody;
+
+      // Ingest directly into backend database via dedicated CSV endpoint
+      const res = await api.teams.uploadCsv(csvPayload);
+
+      if (!res.success) {
+        throw new Error(res.message || "Bulk team upload failed on backend");
+      }
+
+      const createdFromDb = res.data || [];
+      const createdCount = res.createdCount ?? createdFromDb.length;
+
+      if (createdFromDb.length > 0) {
+        const newTeams: Team[] = createdFromDb.map((t, idx) => {
+          const matchingRow = selectedRows.find(
+            (r) => r.name.toLowerCase() === t.team_name.toLowerCase()
+          );
+
+          return {
+            id: String(t.id),
+            name: t.team_name,
+            members: [
+              {
+                name: matchingRow?.captainName || t.team_name,
+                email:
+                  matchingRow?.captainEmail ||
+                  `${t.team_name.toLowerCase().replace(/\s+/g, "")}@cec.heist`,
+                role: "Captain",
+              },
+            ],
+            score: t.score ?? 0,
+            solvedCount: 0,
+            registrationStatus: "VERIFIED",
+            lastActive: "Just now",
+            rank: teams.length + idx + 1,
+            organization: matchingRow?.organization,
+            passcode: matchingRow?.passcode || "HEIST2026",
+          };
         });
+
+        onAddTeams(newTeams);
+      }
+
+      if (onRefreshTeams) {
+        await onRefreshTeams();
+      }
+
+      const skippedNotice =
+        res.skippedCount && res.skippedCount > 0
+          ? ` (${res.skippedCount} skipped as duplicates/invalid)`
+          : "";
+
+      onAddLog({
+        id: `LOG-BULK-${Date.now()}`,
+        timestamp: new Date().toTimeString().split(" ")[0],
+        type: "team_register",
+        message: `Bulk Ingested ${createdCount} squads into DB from ${selectedFileName || "file"}${skippedNotice}.`,
       });
 
-      return {
-        id: `TM-${(teams.length + idx + 1).toString().padStart(3, "0")}`,
-        name: r.name,
-        members,
-        score: 0,
-        solvedCount: 0,
-        registrationStatus: "VERIFIED",
-        lastActive: "Just now",
-        rank: teams.length + idx + 1,
-        organization: r.organization,
-        passcode: r.passcode || "HEIST2026",
-      };
-    });
-
-    onAddTeams(newTeams);
-    onAddLog({
-      id: `LOG-BULK-${Date.now()}`,
-      timestamp: new Date().toTimeString().split(" ")[0],
-      type: "team_register",
-      message: `Bulk Ingested ${newTeams.length} squads from ${selectedFileName || "file"}.`,
-    });
-
-    showToast(`SUCCESSFULLY INGESTED ${newTeams.length} SQUADS INTO MATRIX.`);
-    setIsBulkModalOpen(false);
-    setParsedPreviewRows([]);
-    setSelectedFileName(null);
-    setPastedText("");
+      showToast(`SUCCESSFULLY INGESTED ${createdCount} SQUADS DIRECTLY INTO DATABASE.`);
+      setIsBulkModalOpen(false);
+      setParsedPreviewRows([]);
+      setSelectedFileName(null);
+      setSelectedFile(null);
+      setPastedText("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setBulkError(`Database ingestion failed: ${msg}`);
+    } finally {
+      setIsIngesting(false);
+    }
   };
 
   // Download Sample Template CSV
@@ -1354,19 +1400,28 @@ Phantom Node,Viktor Gray,viktor@phantom.cc,Chloe Bennett,Rohan Patel,,Engineerin
               <button
                 type="button"
                 onClick={handleConfirmBulkIngestion}
-                disabled={parsedPreviewRows.filter((r) => r.selected).length === 0}
+                disabled={
+                  parsedPreviewRows.filter((r) => r.selected).length === 0 || isIngesting
+                }
                 className="modal-btn modal-btn-confirm"
                 style={{
                   background: "#00f3ff",
                   color: "#040406",
-                  opacity: parsedPreviewRows.filter((r) => r.selected).length === 0 ? 0.4 : 1,
+                  opacity:
+                    parsedPreviewRows.filter((r) => r.selected).length === 0 || isIngesting
+                      ? 0.4
+                      : 1,
                   cursor:
-                    parsedPreviewRows.filter((r) => r.selected).length === 0
+                    parsedPreviewRows.filter((r) => r.selected).length === 0 || isIngesting
                       ? "not-allowed"
                       : "pointer",
                 }}
               >
-                CONFIRM INGESTION ({parsedPreviewRows.filter((r) => r.selected).length} SQUADS)
+                {isIngesting
+                  ? "[ INGESTING SQUADS INTO DB... ]"
+                  : `CONFIRM INGESTION (${
+                      parsedPreviewRows.filter((r) => r.selected).length
+                    } SQUADS)`}
               </button>
             </div>
           </div>

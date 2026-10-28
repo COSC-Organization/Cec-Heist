@@ -217,6 +217,258 @@ export async function createTeamsBulk(c: AppContext) {
   )
 }
 
+/**
+ * Parse CSV content into an array of string fields per row.
+ * Conforms to RFC 4180: handles commas within quotes, escaped double quotes (""),
+ * strips UTF-8 BOM, and standardizes CRLF/LF line breaks.
+ */
+function parseCsvContent(text: string): string[][] {
+  const clean = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i]
+
+    if (char === '"') {
+      if (inQuotes && clean[i + 1] === '"') {
+        field += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(field.trim())
+      field = ''
+    } else if (char === '\n' && !inQuotes) {
+      row.push(field.trim())
+      if (row.some((c) => c.length > 0)) {
+        rows.push(row)
+      }
+      row = []
+      field = ''
+    } else {
+      field += char
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field.trim())
+    if (row.some((c) => c.length > 0)) {
+      rows.push(row)
+    }
+  }
+
+  return rows
+}
+
+/**
+ * Bulk upload and register teams directly from a CSV file or payload.
+ * Supports multipart/form-data, text/csv, and JSON bodies.
+ * Automatically identifies columns (team name, password, score).
+ * Protected: Admin only.
+ */
+export async function uploadTeamsCSV(c: AppContext) {
+  const contentType = c.req.header('content-type') || ''
+  let rawCsv = ''
+
+  try {
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await c.req.formData()
+      const file = formData.get('file') || formData.get('csv')
+      if (file && typeof file === 'object' && 'text' in file) {
+        rawCsv = await file.text()
+      } else if (typeof file === 'string') {
+        rawCsv = file
+      }
+    } else if (contentType.includes('application/json')) {
+      const json = await c.req.json()
+      rawCsv = json.csv || json.content || ''
+    } else {
+      rawCsv = await c.req.text()
+    }
+  } catch (err) {
+    return c.json(
+      {
+        success: false,
+        message: `Failed to read CSV payload: ${err instanceof Error ? err.message : String(err)}`,
+      },
+      400
+    )
+  }
+
+  if (!rawCsv || !rawCsv.trim()) {
+    return c.json(
+      { success: false, message: 'CSV content or file is empty or missing' },
+      400
+    )
+  }
+
+  const rows = parseCsvContent(rawCsv)
+  if (rows.length === 0) {
+    return c.json(
+      { success: false, message: 'No valid data rows detected in CSV' },
+      400
+    )
+  }
+
+  // Determine column mapping by examining the first row
+  const firstRow = rows[0].map((cell) =>
+    cell.toLowerCase().replace(/[\s_\-"']/g, '')
+  )
+  const teamNameKeywords = [
+    'teamname',
+    'team',
+    'name',
+    'squadname',
+    'squad',
+    'teams',
+    'squads',
+  ]
+  const passwordKeywords = [
+    'password',
+    'passcode',
+    'pass',
+    'pwd',
+    'secret',
+    'teampassword',
+  ]
+  const scoreKeywords = ['score', 'points', 'pts']
+
+  let teamNameIdx = firstRow.findIndex((c) => teamNameKeywords.includes(c))
+  let passwordIdx = firstRow.findIndex((c) => passwordKeywords.includes(c))
+  let scoreIdx = firstRow.findIndex((c) => scoreKeywords.includes(c))
+
+  let dataRows: string[][]
+  if (teamNameIdx !== -1) {
+    dataRows = rows.slice(1)
+    if (passwordIdx === -1 && rows[0].length > 1) {
+      // If header doesn't explicitly match password, check if 2nd column or last column
+      passwordIdx = teamNameIdx === 0 && rows[0].length === 2 ? 1 : rows[0].length - 1
+    }
+  } else {
+    // Headerless CSV: col 0 is team_name, col 1 is password if present
+    teamNameIdx = 0
+    passwordIdx = rows[0].length > 1 ? 1 : -1
+    dataRows = rows
+  }
+
+  if (dataRows.length === 0) {
+    return c.json(
+      {
+        success: false,
+        message: 'CSV file contains headers but no data rows',
+      },
+      400
+    )
+  }
+
+  const db = createDb(c.env.cec_heist_db)
+  const created: Array<{ id: number; team_name: string; score: number }> = []
+  const errors: Array<{ row: number; team_name?: string; reason: string }> = []
+  const seenInBatch = new Set<string>()
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i]
+    const rowNum = teamNameIdx !== -1 ? i + 2 : i + 1
+
+    const teamName = (row[teamNameIdx] || '').trim()
+    let password = (
+      passwordIdx !== -1 && row[passwordIdx] ? row[passwordIdx] : ''
+    ).trim()
+    const scoreVal =
+      scoreIdx !== -1 && row[scoreIdx] ? parseInt(row[scoreIdx].trim(), 10) : 0
+    const finalScore = Number.isSafeInteger(scoreVal) && scoreVal >= 0 ? scoreVal : 0
+
+    if (!password) {
+      password = 'HEIST2026'
+    }
+
+    if (!teamName) {
+      errors.push({ row: rowNum, reason: 'Empty team name' })
+      continue
+    }
+
+    if (teamName.length > 100) {
+      errors.push({
+        row: rowNum,
+        team_name: teamName,
+        reason: 'Team name exceeds 100 characters',
+      })
+      continue
+    }
+
+    const normalized = teamName.toLowerCase()
+    if (seenInBatch.has(normalized)) {
+      errors.push({
+        row: rowNum,
+        team_name: teamName,
+        reason: 'Duplicate team name in uploaded CSV batch',
+      })
+      continue
+    }
+    seenInBatch.add(normalized)
+
+    try {
+      const existing = await db.query.teams.findFirst({
+        where: eq(sql`lower(${teams.teamName})`, normalized),
+      })
+
+      if (existing) {
+        errors.push({
+          row: rowNum,
+          team_name: teamName,
+          reason: 'Team name already exists in database',
+        })
+        continue
+      }
+
+      const passwordHash = await hash(password, 10)
+      const [newTeam] = await db
+        .insert(teams)
+        .values({
+          teamName,
+          passwordHash,
+          score: finalScore,
+        })
+        .returning({
+          id: teams.id,
+          teamName: teams.teamName,
+          score: teams.score,
+        })
+
+      created.push({
+        id: newTeam.id,
+        team_name: newTeam.teamName,
+        score: newTeam.score,
+      })
+    } catch (err) {
+      errors.push({
+        row: rowNum,
+        team_name: teamName,
+        reason: err instanceof Error ? err.message : 'Database insertion error',
+      })
+    }
+  }
+
+  return c.json(
+    {
+      success: true,
+      message: `Bulk team upload processed: ${created.length} squads registered directly into database${
+        errors.length > 0 ? ` (${errors.length} skipped)` : ''
+      }`,
+      totalRows: dataRows.length,
+      createdCount: created.length,
+      skippedCount: errors.length,
+      data: created,
+      errors: errors.length > 0 ? errors : undefined,
+    },
+    created.length > 0 ? 201 : 200
+  )
+}
+
 export async function updateTeam(c: AppContext) {
   const id = Number(c.req.param('id'))
   let body: { team_name?: unknown; password?: unknown; score?: unknown }

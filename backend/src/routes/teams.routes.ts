@@ -4,6 +4,7 @@ import {
   getTeamById,
   createTeam,
   createTeamsBulk,
+  uploadTeamsCSV,
   updateTeam,
   deleteTeam,
 } from '../controllers/teams.controller'
@@ -26,6 +27,8 @@ teamsRoutes.get('/:id', requireUser, validatePositiveIntParam('id'), getTeamById
 // Only admins can modify team data.
 teamsRoutes.post('/', requireAdmin, createTeam)
 teamsRoutes.post('/bulk', requireAdmin, createTeamsBulk)
+teamsRoutes.post('/bulk-csv', requireAdmin, uploadTeamsCSV)
+teamsRoutes.post('/upload-csv', requireAdmin, uploadTeamsCSV)
 teamsRoutes.patch('/:id', requireAdmin, validatePositiveIntParam('id'), updateTeam)
 teamsRoutes.delete('/:id', requireAdmin, validatePositiveIntParam('id'), deleteTeam)
 
