@@ -60,6 +60,21 @@ export interface TeamByRankResponse {
   };
 }
 
+export interface TeamRankData {
+  id: number;
+  team_name: string;
+  score: number;
+  rank: number;
+  totalTeams: number;
+  page: number;
+  limit?: number;
+}
+
+export interface TeamRankResponse {
+  success: boolean;
+  data: TeamRankData;
+}
+
 export interface TeamResponse {
   success: boolean;
   data: {
@@ -384,6 +399,16 @@ export const api = {
 
     getByRank: (rank: number) =>
       apiRequest<TeamByRankResponse>(`/api/leaderboard/${rank}`, {
+        method: "GET",
+      }),
+
+    getMyRank: (limit = 10) =>
+      apiRequest<TeamRankResponse>(`/api/leaderboard/me?limit=${limit}`, {
+        method: "GET",
+      }),
+
+    getTeamRank: (teamId: number, limit = 10) =>
+      apiRequest<TeamRankResponse>(`/api/leaderboard/team/${teamId}?limit=${limit}`, {
         method: "GET",
       }),
   },

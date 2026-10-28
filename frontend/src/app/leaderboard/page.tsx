@@ -7,7 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { usePixelTransition } from "../../components/PixelTransition";
 import { useAuth } from "../../context/AuthContext";
 import AuthGuard from "../../components/AuthGuard";
-import { api, RankedTeam } from "../../lib/api";
+import { api, RankedTeam, TeamRankData } from "../../lib/api";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -124,7 +124,7 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
-  const { isLoggedIn, openLoginModal } = useAuth();
+  const { user, isLoggedIn, openLoginModal } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -133,7 +133,40 @@ export default function LeaderboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalTeams, setTotalTeams] = useState(0);
+  const [myStanding, setMyStanding] = useState<TeamRankData | null>(null);
+  const [myStandingLoading, setMyStandingLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const fetchMyStanding = useCallback(async () => {
+    if (!isLoggedIn) {
+      setMyStanding(null);
+      return;
+    }
+    setMyStandingLoading(true);
+    try {
+      let res;
+      try {
+        res = await api.leaderboard.getMyRank(10);
+      } catch {
+        const teamNum = Number(user?.teamId || user?.id);
+        if (teamNum && !isNaN(teamNum)) {
+          res = await api.leaderboard.getTeamRank(teamNum, 10);
+        }
+      }
+
+      if (res && res.success && res.data) {
+        setMyStanding(res.data);
+      }
+    } catch {
+      // Ignore unranked or unauthorized
+    } finally {
+      setMyStandingLoading(false);
+    }
+  }, [isLoggedIn, user?.teamId, user?.id]);
+
+  useEffect(() => {
+    fetchMyStanding();
+  }, [fetchMyStanding]);
 
   const fetchLeaderboard = useCallback(async (page: number) => {
     setLoading(true);
@@ -454,20 +487,32 @@ export default function LeaderboardPage() {
                   const isTop1 = entry.rank === 1;
                   const isTop2 = entry.rank === 2;
                   const isTop3 = entry.rank === 3;
+                  const isMySquad = Boolean(
+                    (myStanding && entry.id === myStanding.id) ||
+                    (user && (
+                      entry.id === Number(user.teamId || user.id) ||
+                      (user.teamName && entry.teamName.trim().toLowerCase() === user.teamName.trim().toLowerCase())
+                    ))
+                  );
 
                   return (
                     <div
                       key={entry.id || entry.rank}
                       className={`simple-table-row ${
                         isTop1 ? "row-rank-1" : isTop2 ? "row-rank-2" : isTop3 ? "row-rank-3" : ""
-                      }`}
+                      } ${isMySquad ? "row-current-squad" : ""}`}
                       onMouseEnter={playCyberHover}
                     >
                       <div className="col-rank font-pixel">
                         #{entry.rank < 10 ? `0${entry.rank}` : entry.rank}
                       </div>
-                      <div className="col-team font-pixel">
-                        {entry.teamName}
+                      <div className="col-team font-pixel" style={{ display: "flex", alignItems: "center", gap: "0.45rem", minWidth: 0 }}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {entry.teamName}
+                        </span>
+                        {isMySquad && (
+                          <span className="my-squad-badge font-pixel">YOUR SQUAD</span>
+                        )}
                       </div>
                       <div className="col-score font-pixel">
                         {entry.score.toLocaleString()}
@@ -536,6 +581,101 @@ export default function LeaderboardPage() {
               </div>
             )}
           </div>
+
+          {/* Bottom Squad Live Standing Dock: Shows live squad position & rank */}
+          {isLoggedIn ? (
+            user?.role === "admin" && !myStanding ? (
+              <div className="leaderboard-my-standing-dock font-pixel">
+                <div className="standing-dock-left">
+                  <span className="standing-dock-label">
+                    <span style={{ color: "#facc15" }}>★</span> ADMIN OVERVIEW MODE
+                  </span>
+                  <span className="standing-dock-team-name">
+                    {user.email || "SYSTEM ADMINISTRATOR"}
+                  </span>
+                </div>
+                <div className="standing-dock-right">
+                  <span style={{ color: "#a1a1aa", fontSize: "0.8rem", letterSpacing: "1px" }}>
+                    MONITORING ALL SQUADS ({totalTeams > 0 ? totalTeams : leaderboardData.length})
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="leaderboard-my-standing-dock font-pixel">
+                <div className="standing-dock-left">
+                  <span className="standing-dock-label">
+                    <span style={{ color: "#00f0ff" }}>●</span> YOUR SQUAD LIVE STANDING
+                  </span>
+                  <span className="standing-dock-team-name">
+                    {myStanding?.team_name || user?.teamName || "YOUR SQUAD"}
+                  </span>
+                </div>
+
+                <div className="standing-dock-right">
+                  <div className="standing-stat-box">
+                    <span className="standing-stat-label">GLOBAL RANK</span>
+                    <span className="standing-stat-value highlight-cyan">
+                      {myStandingLoading ? (
+                        "CALCULATING..."
+                      ) : myStanding ? (
+                        `#${myStanding.rank < 10 ? `0${myStanding.rank}` : myStanding.rank} ${
+                          myStanding.totalTeams ? `/ ${myStanding.totalTeams}` : ""
+                        }`
+                      ) : (
+                        "UNRANKED"
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="standing-stat-box">
+                    <span className="standing-stat-label">SCORE</span>
+                    <span className="standing-stat-value">
+                      {(myStanding?.score ?? user?.score ?? 0).toLocaleString()} PTS
+                    </span>
+                  </div>
+
+                  {myStanding && myStanding.page && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playCyberClick();
+                        if (myStanding.page !== currentPage) {
+                          setCurrentPage(myStanding.page);
+                        }
+                      }}
+                      className="standing-jump-btn font-pixel"
+                      title={`Go to page ${myStanding.page}`}
+                    >
+                      {myStanding.page === currentPage
+                        ? "[ ON CURRENT PAGE ]"
+                        : `[ JUMP TO MY PAGE (${myStanding.page}) ]`}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="leaderboard-my-standing-dock font-pixel">
+              <div className="standing-dock-unauth">
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{ color: "#00f0ff" }}>◈</span>
+                  <span style={{ color: "#a1a1aa", fontSize: "0.85rem", letterSpacing: "1px" }}>
+                    WANT TO TRACK YOUR SQUAD&apos;S LIVE POSITION &amp; RANK?
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playCyberClick();
+                    openLoginModal("/leaderboard");
+                  }}
+                  className="standing-jump-btn font-pixel"
+                >
+                  [ SQUAD LOGIN ]
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       </main>

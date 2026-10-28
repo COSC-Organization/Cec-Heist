@@ -1,8 +1,9 @@
-
 import { Hono } from 'hono'
 import {
   getLeaderboard,
   getTeamByRank,
+  getTeamRankById,
+  getMyRank,
 } from '../controllers/leaderboard.controller'
 import {
   validatePagination,
@@ -18,6 +19,8 @@ const leaderboardRoutes = new Hono<{ Bindings: CloudflareBindings }>()
 leaderboardRoutes.use('*', authMiddleware, requireUser)
 
 leaderboardRoutes.get('/', validatePagination, getLeaderboard)
+leaderboardRoutes.get('/me', getMyRank)
+leaderboardRoutes.get('/team/:teamId', validatePositiveIntParam('teamId'), getTeamRankById)
 leaderboardRoutes.get('/:rank', validatePositiveIntParam('rank'), getTeamByRank)
 
 export default leaderboardRoutes

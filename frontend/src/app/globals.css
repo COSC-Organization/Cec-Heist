@@ -1280,6 +1280,141 @@ img, image, picture img {
   color: #fb923c;
 }
 
+/* Current User Squad Row Highlight */
+.simple-table-row.row-current-squad {
+  background: rgba(0, 240, 255, 0.08) !important;
+  border-left: 3px solid #00f0ff !important;
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.12);
+}
+
+.my-squad-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  background: rgba(0, 240, 255, 0.16);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  border-radius: 3px;
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+  vertical-align: middle;
+}
+
+/* Bottom Squad Live Standing Dock */
+.leaderboard-my-standing-dock {
+  margin-top: 1.25rem;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(14, 20, 28, 0.95) 0%, rgba(10, 14, 20, 0.98) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  padding: 1rem 1.4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.12), inset 0 1px 1px rgba(0, 240, 255, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.leaderboard-my-standing-dock::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #00f0ff, #7000ff);
+}
+
+.standing-dock-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.standing-dock-label {
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.standing-dock-team-name {
+  font-size: 1.15rem;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.standing-dock-right {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-shrink: 0;
+}
+
+.standing-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.standing-stat-label {
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  color: #8892b0;
+}
+
+.standing-stat-value {
+  font-size: 1.25rem;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.standing-stat-value.highlight-cyan {
+  color: #00f0ff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.standing-jump-btn {
+  padding: 0.45rem 0.85rem;
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: #00f0ff;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.standing-jump-btn:hover {
+  background: rgba(0, 240, 255, 0.25);
+  border-color: #00f0ff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.standing-dock-unauth {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+}
+
 @media (max-width: 768px) {
   .leaderboard-screen .side-wheel-container {
     display: none;
@@ -1315,6 +1450,20 @@ img, image, picture img {
     font-size: 1rem;
     white-space: nowrap;
     flex-shrink: 0;
+  }
+  .leaderboard-my-standing-dock {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 0.9rem 1.1rem;
+  }
+  .standing-dock-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+  .standing-stat-box {
+    align-items: flex-start;
   }
 }
 
