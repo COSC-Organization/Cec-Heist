@@ -46,7 +46,13 @@ export async function getTeamById(c: AppContext) {
 }
 
 export async function createTeam(c: AppContext) {
-  let body: { team_name?: unknown; password?: unknown; score?: unknown }
+  let body: {
+    team_name?: unknown
+    email?: unknown
+    leader_email?: unknown
+    password?: unknown
+    score?: unknown
+  }
 
   try {
     body = await c.req.json()
@@ -521,7 +527,13 @@ export async function uploadTeamsCSV(c: AppContext) {
 
 export async function updateTeam(c: AppContext) {
   const id = Number(c.req.param('id'))
-  let body: { team_name?: unknown; password?: unknown; score?: unknown }
+  let body: {
+    team_name?: unknown
+    email?: unknown
+    leader_email?: unknown
+    password?: unknown
+    score?: unknown
+  }
 
   try {
     body = await c.req.json()
