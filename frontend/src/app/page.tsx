@@ -250,7 +250,7 @@ export default function Home() {
               <Link href="/arena" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/arena")}><ScrambleText text="02. ARENA" /></Link>
               <Link href="/leaderboard" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/leaderboard")}><ScrambleText text="03. LEADERBOARD" /></Link>
               
-              <Link href="/profile" className="menu-nav-item" onClick={(e) => handleNavClick(e, "/profile")}><ScrambleText text="04. PROFILE" /></Link>
+              
             </nav>
             
             <img 
