@@ -243,6 +243,7 @@ export interface PlayCard {
   title: string;
   desc: string;
   points: number;
+  difficulty: "easy" | "medium" | "high";
   problemDescription: string;
   hint: string;
   flag: string;
@@ -257,7 +258,8 @@ const PLAY_CARDS: PlayCard[] = [
     number: "01",
     title: "BREACH PROTOCOL",
     desc: "Bypass perimeter surveillance and decrypt security keys to initiate sector access.",
-    points: 100,
+    points: 10,
+    difficulty: "easy",
     problemDescription:
       "Perimeter sensors detect incoming intrusion attempts on refinery sub-network 192.168.1.0/24. Analyze the telemetry log to identify the anomalous authentication token and recover the primary bypass security key.",
     hint: "Inspect the HTTP Authorization headers or look for standard base64 encoded strings in the transmission stream.",
@@ -271,7 +273,8 @@ const PLAY_CARDS: PlayCard[] = [
     number: "02",
     title: "CIPHER DECRYPT",
     desc: "Extract classified frequency ciphers from localized memory registers.",
-    points: 200,
+    points: 20,
+    difficulty: "medium",
     problemDescription:
       "A memory dump from the depot logistics terminal reveals an encrypted sequence obfuscated with multi-stage XOR and transposition tables. Reverse the key stream to decrypt the master dispatch authorization cipher.",
     hint: "The XOR key is 4 bytes long. Look for standard ASCII letter frequencies or known plaintext prefixes like 'FLAG'.",
@@ -285,7 +288,8 @@ const PLAY_CARDS: PlayCard[] = [
     number: "03",
     title: "NEURAL OVERRIDE",
     desc: "Deploy automated payload routines to disrupt command complex sentry units.",
-    points: 350,
+    points: 20,
+    difficulty: "medium",
     problemDescription:
       "Command complex sentries communicate via a custom binary protocol on port 8443. Craft an exception-triggering payload to force a crash dump and extract the supervisor credentials from memory.",
     hint: "Check boundary checks on packet lengths. An integer wrap allows bypassing the memory fence.",
@@ -299,7 +303,8 @@ const PLAY_CARDS: PlayCard[] = [
     number: "04",
     title: "VAULT EXTRACTION",
     desc: "Infiltrate fortified airborne vault and secure primary heist asset.",
-    points: 500,
+    points: 30,
+    difficulty: "high",
     problemDescription:
       "The fortified vault biometric lock verifies cryptographic signatures using elliptic curve cryptography. Reconstruct the private signing key from leaked nonce values to disengage the vault seal.",
     hint: "The random number generator reuses low entropy seeds. Solve the hidden number problem using lattice reduction.",
@@ -341,8 +346,9 @@ const mapAssignedToPlayCard = (
     4: "/arena/pic4.png",
   };
   const facility = facilityByLevel[c.level] || "factory";
+  const diff = (c.difficulty || "easy").toLowerCase() as "easy" | "medium" | "high";
   const points =
-    c.difficulty === "easy" ? 100 : c.difficulty === "medium" ? 200 : 350;
+    c.points ?? (diff === "easy" ? 10 : diff === "medium" ? 20 : 30);
   const isSolved = solvedChallengeIds.has(String(c.id));
 
   return {
@@ -351,6 +357,7 @@ const mapAssignedToPlayCard = (
     title: c.title.toUpperCase(),
     desc: c.description,
     points,
+    difficulty: diff,
     problemDescription: c.description,
     hint: c.hintUrl
       ? `Intelligence dossier accessible at: ${c.hintUrl}`
@@ -514,7 +521,8 @@ export default function ArenaPage() {
                   number: String(idx + 1).padStart(2, "0"),
                   title: c.title.toUpperCase(),
                   desc: c.description,
-                  points: c.points,
+                  points: c.points ?? (c.difficulty === "high" ? 30 : c.difficulty === "medium" ? 20 : 10),
+                  difficulty: c.difficulty || "easy",
                   problemDescription: c.description,
                   hint: c.hint || "Analyze system communications and reverse cipher nonces to extract the root key.",
                   flag: c.flag || "FLAG{cecheist_override}",
@@ -1173,6 +1181,16 @@ export default function ArenaPage() {
                           />
                         </div>
                         <div className="playcard-body">
+                          <div className="playcard-meta-bar">
+                            <span
+                              className={`playcard-difficulty-tag diff-${card.difficulty || "easy"}`}
+                            >
+                              {(card.difficulty || "easy").toUpperCase()}
+                            </span>
+                            <span className="playcard-points-tag">
+                              {card.points} PTS
+                            </span>
+                          </div>
                           <h4 className="playcard-title">{card.title}</h4>
                           <p className="playcard-desc">{card.desc}</p>
                           <div className="playcard-status-row">
@@ -1233,6 +1251,13 @@ export default function ArenaPage() {
               </div>
 
               <div className="challenge-header-right">
+                <div
+                  className={`challenge-difficulty-pill diff-${
+                    selectedCard.difficulty || "easy"
+                  }`}
+                >
+                  <span>{(selectedCard.difficulty || "easy").toUpperCase()}</span>
+                </div>
                 <div className="challenge-points-badge">
                   <span>{selectedCard.points} PTS</span>
                 </div>

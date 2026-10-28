@@ -142,8 +142,17 @@ export async function getTeamAssignedChallenges(c: AppContext) {
       .where(and(...conditions))
   }
 
+  const POINTS_BY_DIFF: Record<string, number> = {
+    easy: 10,
+    medium: 20,
+    high: 30,
+  }
+
   return c.json({
     success: true,
-    data: assigned,
+    data: assigned.map((ch) => ({
+      ...ch,
+      points: POINTS_BY_DIFF[ch.difficulty] ?? 10,
+    })),
   })
 }

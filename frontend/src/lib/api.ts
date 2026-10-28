@@ -112,6 +112,7 @@ export interface ChallengeResponse {
     hintUrl: string | null;
     level: number;
     difficulty: "easy" | "medium" | "high";
+    points?: number;
     createdAt: string;
   };
 }
@@ -128,6 +129,7 @@ export interface AssignedChallenge {
   hintUrl: string | null;
   level: number;
   difficulty: "easy" | "medium" | "high";
+  points?: number;
   assignedAt?: string;
 }
 

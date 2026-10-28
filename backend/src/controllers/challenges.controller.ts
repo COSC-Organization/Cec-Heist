@@ -21,9 +21,18 @@ export async function getAllChallenges(c: AppContext) {
     .from(challenges)
     .orderBy(challenges.id)
 
+  const POINTS_BY_DIFF: Record<string, number> = {
+    easy: 10,
+    medium: 20,
+    high: 30,
+  }
+
   return c.json({
     success: true,
-    data: all,
+    data: all.map((ch) => ({
+      ...ch,
+      points: POINTS_BY_DIFF[ch.difficulty] ?? 10,
+    })),
   })
 }
 

@@ -2056,6 +2056,63 @@ button img,
   box-shadow: none !important;
 }
 
+.playcard-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+  margin-bottom: 0.15rem;
+}
+
+.playcard-difficulty-tag {
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+.playcard-difficulty-tag.diff-easy {
+  color: #00ffcc;
+  background: rgba(0, 255, 204, 0.12);
+  border: 1px solid rgba(0, 255, 204, 0.4);
+  box-shadow: 0 0 6px rgba(0, 255, 204, 0.15);
+}
+
+.playcard-difficulty-tag.diff-medium {
+  color: #00f3ff;
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  box-shadow: 0 0 6px rgba(0, 243, 255, 0.15);
+}
+
+.playcard-difficulty-tag.diff-high {
+  color: #ff3366;
+  background: rgba(255, 51, 102, 0.14);
+  border: 1px solid rgba(255, 51, 102, 0.5);
+  box-shadow: 0 0 6px rgba(255, 51, 102, 0.2);
+}
+
+.playcard-points-tag {
+  font-family: 'FK Raster Roman', 'Pixelify Sans', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  font-weight: bold;
+  color: #ffb800;
+  background: rgba(255, 184, 0, 0.12);
+  border: 1px solid rgba(255, 184, 0, 0.45);
+  padding: 2px 7px;
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+}
+
 .playcard-status-row {
   display: flex;
   align-items: center;
@@ -3962,6 +4019,40 @@ button img,
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.challenge-difficulty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: var(--font-minecraft), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.challenge-difficulty-pill.diff-easy {
+  color: #00ffcc;
+  background: rgba(0, 255, 204, 0.12);
+  border: 1px solid rgba(0, 255, 204, 0.6);
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.25);
+}
+
+.challenge-difficulty-pill.diff-medium {
+  color: #00f3ff;
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.25);
+}
+
+.challenge-difficulty-pill.diff-high {
+  color: #ff3366;
+  background: rgba(255, 51, 102, 0.14);
+  border: 1px solid rgba(255, 51, 102, 0.6);
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.25);
 }
 
 .challenge-points-badge {
