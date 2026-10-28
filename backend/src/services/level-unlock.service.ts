@@ -7,7 +7,7 @@ const LEVEL_THRESHOLDS: Record<number, number> = {
   1: 0,
   2: 30,
   3: 70,
-  4: Number.MAX_SAFE_INTEGER, // Update when your team confirms the threshold.
+  4: 120,
 }
 
 export async function getUnlockedLevel(

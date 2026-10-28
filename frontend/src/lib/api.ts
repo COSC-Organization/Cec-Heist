@@ -3,7 +3,10 @@
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname.includes("cosc25.in")
+  (typeof window !== "undefined" &&
+  (window.location.hostname.includes("cosc25.in") ||
+    window.location.hostname.includes("vercel.app") ||
+    window.location.hostname !== "localhost")
     ? "https://cec-heist-backend.cosc25.in"
     : "http://localhost:8787");
 
@@ -106,6 +109,38 @@ export interface ChallengeResponse {
 export interface HealthResponse {
   success: boolean;
   message: string;
+}
+
+export interface AssignedChallenge {
+  id: number;
+  title: string;
+  description: string;
+  hintUrl: string | null;
+  level: number;
+  difficulty: "easy" | "medium" | "high";
+  assignedAt?: string;
+}
+
+export interface FlagSubmitResponse {
+  success: boolean;
+  message: string;
+  points_awarded?: number;
+  score?: number;
+}
+
+export interface LevelStatusResponse {
+  success: boolean;
+  data: {
+    team_id: number;
+    score: number;
+    unlocked_level: number;
+    levels: Array<{
+      level: number;
+      required_score: number | null;
+      unlocked: boolean;
+      message?: string;
+    }>;
+  };
 }
 
 // Token Storage Helpers
@@ -396,5 +431,49 @@ export const api = {
       apiRequest<{ success: boolean; message: string }>(`/api/challenges/${id}`, {
         method: "DELETE",
       }),
+  },
+
+  // 6. Challenge Assignments (Contestants & Admin)
+  challengeAssignments: {
+    getForTeam: (teamId: number, level?: number) =>
+      apiRequest<{ success: boolean; data: AssignedChallenge[] }>(
+        `/api/challenge-assignments/${teamId}${level ? `?level=${level}` : ""}`,
+        { method: "GET" }
+      ),
+
+    assign: (teamId: number, level: number) =>
+      apiRequest<{ success: boolean; message: string; assignedCount?: number }>(
+        `/api/challenge-assignments/${teamId}/levels/${level}/assign`,
+        { method: "POST" }
+      ),
+  },
+
+  // 7. Flag Submissions & Solves (Contestants)
+  challengeSolves: {
+    submit: (challengeId: number, flag: string) =>
+      apiRequest<FlagSubmitResponse>(
+        `/api/challenge-solves/${challengeId}/submit`,
+        {
+          method: "POST",
+          body: JSON.stringify({ flag }),
+        }
+      ),
+
+    getTeamSolves: (teamId: number) =>
+      apiRequest<{
+        success: boolean;
+        data: Array<{ challengeId: number; pointsAwarded: number; solvedAt: string }>;
+      }>(`/api/challenge-solves/${teamId}`, {
+        method: "GET",
+      }),
+  },
+
+  // 8. Level Unlock Progression (Contestants)
+  levelUnlocks: {
+    getStatus: (teamId: number) =>
+      apiRequest<LevelStatusResponse>(
+        `/api/level-unlocks/${teamId}`,
+        { method: "GET" }
+      ),
   },
 };

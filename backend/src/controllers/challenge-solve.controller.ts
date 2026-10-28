@@ -238,3 +238,37 @@ export async function submitChallengeFlag(c: AppContext) {
     )
   }
 }
+
+export async function getTeamSolves(c: AppContext) {
+  const teamId = Number(c.req.param('teamId'))
+  const db = createDb(c.env.cec_heist_db)
+  const authUser = c.get('user')
+
+  if (!Number.isSafeInteger(teamId) || teamId <= 0) {
+    return c.json({ success: false, message: 'Invalid team ID' }, 400)
+  }
+
+  if (authUser.role === 'user') {
+    const userTeamId = authUser.teamId ?? Number(authUser.id)
+    if (userTeamId !== teamId) {
+      return c.json(
+        { success: false, message: "You cannot access another team's solves" },
+        403
+      )
+    }
+  }
+
+  const solves = await db
+    .select({
+      challengeId: teamChallengeSolves.challengeId,
+      pointsAwarded: teamChallengeSolves.pointsAwarded,
+      solvedAt: teamChallengeSolves.solvedAt,
+    })
+    .from(teamChallengeSolves)
+    .where(eq(teamChallengeSolves.teamId, teamId))
+
+  return c.json({
+    success: true,
+    data: solves,
+  })
+}

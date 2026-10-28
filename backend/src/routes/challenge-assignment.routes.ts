@@ -12,10 +12,10 @@ const routes = new Hono<{ Bindings: CloudflareBindings }>()
 
 routes.use('*', authMiddleware)
 
-// Admin-only assignment endpoint.
+// Authenticated assignment endpoint (admin or owning team).
 routes.post(
   '/:teamId/levels/:level/assign',
-  requireAdmin,
+  requireUser,
   validatePositiveIntParam('teamId'),
   validatePositiveIntParam('level'),
   assignTeamChallenges,

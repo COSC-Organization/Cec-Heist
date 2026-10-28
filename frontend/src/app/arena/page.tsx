@@ -8,6 +8,7 @@ import { usePixelTransition } from "../../components/PixelTransition";
 import { useAuth } from "../../context/AuthContext";
 import AuthGuard from "../../components/AuthGuard";
 import ArenaCar from "../../components/ArenaCar";
+import { api, type AssignedChallenge } from "../../lib/api";
 
 // Web Audio API Sound Generators
 const playCyberHover = () => {
@@ -321,11 +322,51 @@ const ROAD_2_PATH =
 const ROAD_3_PATH =
   "M 1210 659 C 1211.8 659.0, 1216.7 658.8, 1221 659 C 1225.3 659.2, 1231.0 659.8, 1236 660 C 1241.0 660.2, 1246.0 660.5, 1251 660 C 1256.0 659.5, 1261.0 658.2, 1266 657 C 1271.0 655.8, 1276.0 654.5, 1281 653 C 1286.0 651.5, 1290.8 650.7, 1296 648 C 1301.2 645.3, 1307.0 643.2, 1312 637 C 1317.0 630.8, 1321.3 621.2, 1326 611 C 1330.7 600.8, 1335.2 586.0, 1340 576 C 1344.8 566.0, 1350.0 556.7, 1355 551 C 1360.0 545.3, 1367.5 543.5, 1370 542";
 
+// Map backend challenge assignment to PlayCard with sector / facility routing
+const mapAssignedToPlayCard = (
+  c: AssignedChallenge,
+  idx: number,
+  solvedChallengeIds: Set<string>
+): PlayCard => {
+  const facilityByLevel: Record<number, string> = {
+    1: "factory",
+    2: "logistics",
+    3: "command",
+    4: "vault",
+  };
+  const picByLevel: Record<number, string> = {
+    1: "/arena/pic1.png",
+    2: "/arena/pic2.png",
+    3: "/arena/pic3.png",
+    4: "/arena/pic4.png",
+  };
+  const facility = facilityByLevel[c.level] || "factory";
+  const points =
+    c.difficulty === "easy" ? 100 : c.difficulty === "medium" ? 200 : 350;
+  const isSolved = solvedChallengeIds.has(String(c.id));
+
+  return {
+    id: String(c.id),
+    number: String(idx + 1).padStart(2, "0"),
+    title: c.title.toUpperCase(),
+    desc: c.description,
+    points,
+    problemDescription: c.description,
+    hint: c.hintUrl
+      ? `Intelligence dossier accessible at: ${c.hintUrl}`
+      : "Inspect transmission logs, analyze protocol headers, and extract the root key.",
+    flag: "FLAG{...}",
+    status: isSolved ? "COMPLETED" : "PENDING",
+    pic: picByLevel[c.level] || "/arena/pic1.png",
+    facilityId: facility,
+  };
+};
+
 export default function ArenaPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { triggerTransition } = usePixelTransition();
-  const { isLoggedIn, openLoginModal } = useAuth();
+  const { isLoggedIn, openLoginModal, user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeFacility, setActiveFacility] = useState<string | null>(null);
@@ -333,10 +374,129 @@ export default function ArenaPage() {
   const [showHint, setShowHint] = useState<boolean>(false);
   const [flagInput, setFlagInput] = useState<string>("");
   const [submitFeedback, setSubmitFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [completedChallenges, setCompletedChallenges] = useState<string[]>(["card-1"]);
+  const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
   const [allCards, setAllCards] = useState<PlayCard[]>(PLAY_CARDS);
+  const [isSubmittingFlag, setIsSubmittingFlag] = useState<boolean>(false);
+  const [isLoadingLiveChallenges, setIsLoadingLiveChallenges] = useState<boolean>(false);
 
-  // Sync deployed challenges from Admin localStorage
+  // Sync team's assigned challenges, solves, and level progression from live Backend API
+  useEffect(() => {
+    let isSubscribed = true;
+    const teamIdNum = Number(user?.teamId ?? user?.id);
+
+    async function syncTeamArena() {
+      if (!teamIdNum || !Number.isSafeInteger(teamIdNum) || teamIdNum <= 0) {
+        return;
+      }
+
+      setIsLoadingLiveChallenges(true);
+
+      try {
+        // 1. Fetch team's current solved challenges from backend
+        let solvedIds = new Set<string>();
+        try {
+          const solvesRes = await api.challengeSolves.getTeamSolves(teamIdNum);
+          if (solvesRes.success && Array.isArray(solvesRes.data)) {
+            const ids = solvesRes.data.map((s) => String(s.challengeId));
+            solvedIds = new Set(ids);
+            if (isSubscribed) {
+              setCompletedChallenges(ids);
+            }
+          }
+        } catch {
+          // If solves fetch fails, keep current completed
+        }
+
+        // 2. Fetch team's current level unlock status
+        try {
+          const levelStatus = await api.levelUnlocks.getStatus(teamIdNum);
+          if (
+            isSubscribed &&
+            levelStatus.success &&
+            levelStatus.data?.unlocked_level
+          ) {
+            setUnlockedStages(
+              Math.max(1, Math.min(4, levelStatus.data.unlocked_level))
+            );
+          }
+        } catch {
+          // Keep current unlocked stages
+        }
+
+        // 3. Fetch assigned challenges for this team from live backend
+        let assignedRes;
+        try {
+          assignedRes = await api.challengeAssignments.getForTeam(teamIdNum);
+        } catch {
+          assignedRes = null;
+        }
+
+        // If no challenges assigned yet for Level 1, auto-assign Level 1
+        if (
+          !assignedRes ||
+          !assignedRes.success ||
+          !Array.isArray(assignedRes.data) ||
+          assignedRes.data.length === 0
+        ) {
+          try {
+            await api.challengeAssignments.assign(teamIdNum, 1);
+            assignedRes = await api.challengeAssignments.getForTeam(teamIdNum);
+          } catch {
+            // Keep going
+          }
+        }
+
+        if (
+          isSubscribed &&
+          assignedRes?.success &&
+          Array.isArray(assignedRes.data) &&
+          assignedRes.data.length > 0
+        ) {
+          const mapped = assignedRes.data.map((c, idx) =>
+            mapAssignedToPlayCard(c, idx, solvedIds)
+          );
+          setAllCards(mapped);
+          return;
+        }
+
+        // Fallback: If no team assignments, fetch all published challenges from backend
+        try {
+          const allChalsRes = await api.challenges.getAll();
+          if (
+            isSubscribed &&
+            allChalsRes?.success &&
+            Array.isArray(allChalsRes.data) &&
+            allChalsRes.data.length > 0
+          ) {
+            const mapped = allChalsRes.data.map((c, idx) =>
+              mapAssignedToPlayCard(
+                c as unknown as AssignedChallenge,
+                idx,
+                solvedIds
+              )
+            );
+            setAllCards(mapped);
+          }
+        } catch {
+          // Keep fallback cards
+        }
+      } catch (err) {
+        console.error("Failed to sync team challenges:", err);
+      } finally {
+        if (isSubscribed) {
+          setIsLoadingLiveChallenges(false);
+        }
+      }
+    }
+
+    syncTeamArena();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user?.teamId, user?.id]);
+
+  // Sync deployed challenges from Admin localStorage (fallback for local offline dev)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const loadCustomChallenges = () => {
@@ -362,7 +522,7 @@ export default function ArenaPage() {
                   pic: c.pic || (c.facilityId === "factory" ? "/arena/pic1.png" : c.facilityId === "logistics" ? "/arena/pic2.png" : c.facilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png"),
                   facilityId: c.facilityId || "factory",
                 }));
-                setAllCards(mapped);
+                setAllCards((prev) => (prev.length === 0 || prev[0].id.startsWith("card-") ? mapped : prev));
               }
             }
           } catch {}
@@ -523,22 +683,90 @@ export default function ArenaPage() {
   const selectedFacility = FACILITIES.find((f) => f.id === activeFacility);
   const currentFacilityCards = useMemo(() => {
     if (!activeFacility) return allCards;
-    const matched = allCards.filter((c) => c.facilityId === activeFacility);
-    return matched.length > 0 ? matched : allCards;
+    return allCards.filter((c) => c.facilityId === activeFacility);
   }, [allCards, activeFacility]);
 
   const selectedCard =
     allCards.find((c) => c.id === activeChallenge) ||
     PLAY_CARDS.find((c) => c.id === activeChallenge);
 
-  const handleFlagSubmit = (e: React.FormEvent) => {
+  const handleFlagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCard || !flagInput.trim()) return;
+    if (!selectedCard || !flagInput.trim() || isSubmittingFlag) return;
 
     playCyberClick();
     const cleanInput = flagInput.trim();
+    const numId = Number(selectedCard.id);
 
-    // Check against card flag (ready to be linked to backend/admin API)
+    // If it's a backend challenge (numeric ID)
+    if (Number.isSafeInteger(numId) && numId > 0) {
+      setIsSubmittingFlag(true);
+      setSubmitFeedback(null);
+      try {
+        const res = await api.challengeSolves.submit(numId, cleanInput);
+        if (res.success) {
+          playPowerUpChime();
+          setSubmitFeedback({
+            type: "success",
+            text: `ACCESS GRANTED // FLAG ACCEPTED! +${res.points_awarded ?? selectedCard.points} PTS AWARDED TO SQUAD.`,
+          });
+          setCompletedChallenges((prev) =>
+            prev.includes(selectedCard.id) ? prev : [...prev, selectedCard.id]
+          );
+
+          // Check if solving this unlocked the next stage/level and refresh assignments
+          const teamIdNum = Number(user?.teamId ?? user?.id);
+          if (teamIdNum && Number.isSafeInteger(teamIdNum) && teamIdNum > 0) {
+            try {
+              const statusRes = await api.levelUnlocks.getStatus(teamIdNum);
+              if (statusRes.success && statusRes.data?.unlocked_level) {
+                const nextLevel = Math.max(1, Math.min(4, statusRes.data.unlocked_level));
+                if (nextLevel > unlockedStages) {
+                  triggerUnlock(nextLevel);
+                }
+              }
+              const [assignedRes, solvesRes] = await Promise.all([
+                api.challengeAssignments.getForTeam(teamIdNum),
+                api.challengeSolves.getTeamSolves(teamIdNum),
+              ]);
+              if (solvesRes.success && Array.isArray(solvesRes.data)) {
+                setCompletedChallenges(solvesRes.data.map((s) => String(s.challengeId)));
+              }
+              if (assignedRes.success && Array.isArray(assignedRes.data)) {
+                const solvedSet = new Set(
+                  solvesRes.success && Array.isArray(solvesRes.data)
+                    ? solvesRes.data.map((s) => String(s.challengeId))
+                    : [selectedCard.id]
+                );
+                const mapped = assignedRes.data.map((c, idx) =>
+                  mapAssignedToPlayCard(c, idx, solvedSet)
+                );
+                setAllCards(mapped);
+              }
+            } catch {
+              // Ignore level status refresh error
+            }
+          }
+        } else {
+          playCyberDenied();
+          setSubmitFeedback({
+            type: "error",
+            text: `ACCESS DENIED // ${res.message || "INVALID FLAG CIPHER. RE-VERIFY DECRYPTION PAYLOAD."}`,
+          });
+        }
+      } catch (err: any) {
+        playCyberDenied();
+        setSubmitFeedback({
+          type: "error",
+          text: `ACCESS DENIED // ${err?.message || "SYSTEM REJECTION. CHECK PROTOCOL FORMAT."}`,
+        });
+      } finally {
+        setIsSubmittingFlag(false);
+      }
+      return;
+    }
+
+    // Local / fallback mockup challenge flag check:
     if (cleanInput.toUpperCase() === selectedCard.flag.toUpperCase()) {
       playPowerUpChime();
       setSubmitFeedback({
@@ -909,55 +1137,71 @@ export default function ArenaPage() {
               </button>
             </div>
             <div className="facility-modal-body empty-page">
-              <div className="facility-quad-columns">
-                {currentFacilityCards.map((card, idx) => {
-                  const isCardCompleted = completedChallenges.includes(card.id);
+              {currentFacilityCards.length === 0 ? (
+                <div
+                  style={{
+                    width: "100%",
+                    padding: "4rem 2rem",
+                    textAlign: "center",
+                    fontFamily: "var(--font-mono, monospace)",
+                    color: "rgba(255, 255, 255, 0.6)",
+                    letterSpacing: "0.15em",
+                    fontSize: "0.95rem",
+                  }}
+                >
+                  // NO TARGET ASSIGNMENTS DEPLOYED FOR THIS SECTOR YET //
+                </div>
+              ) : (
+                <div className="facility-quad-columns">
+                  {currentFacilityCards.map((card, idx) => {
+                    const isCardCompleted = completedChallenges.includes(card.id);
 
-                  return (
-                    <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
-                      <span className="box-corner-num">{card.number}</span>
-                      <div className="playcard-img-wrap">
-                        <img
-                          src={card.pic}
-                          alt={`Card ${card.number}`}
-                          className="playcard-img"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.opacity = "0";
-                          }}
-                          onLoad={(e) => {
-                            (e.target as HTMLElement).style.opacity = "1";
-                          }}
-                        />
-                      </div>
-                      <div className="playcard-body">
-                        <h4 className="playcard-title">{card.title}</h4>
-                        <p className="playcard-desc">{card.desc}</p>
-                        <div className="playcard-status-row">
-                          <span className="status-label">STATUS</span>
-                          <span
-                            className={`playcard-status-badge ${
-                              isCardCompleted
-                                ? "status-completed"
-                                : "status-pending"
-                            }`}
-                          >
-                            ● {isCardCompleted ? "COMPLETED" : "PENDING"}
-                          </span>
+                    return (
+                      <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
+                        <span className="box-corner-num">{card.number}</span>
+                        <div className="playcard-img-wrap">
+                          <img
+                            src={card.pic}
+                            alt={`Card ${card.number}`}
+                            className="playcard-img"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.opacity = "0";
+                            }}
+                            onLoad={(e) => {
+                              (e.target as HTMLElement).style.opacity = "1";
+                            }}
+                          />
                         </div>
+                        <div className="playcard-body">
+                          <h4 className="playcard-title">{card.title}</h4>
+                          <p className="playcard-desc">{card.desc}</p>
+                          <div className="playcard-status-row">
+                            <span className="status-label">STATUS</span>
+                            <span
+                              className={`playcard-status-badge ${
+                                isCardCompleted
+                                  ? "status-completed"
+                                  : "status-pending"
+                              }`}
+                            >
+                              ● {isCardCompleted ? "COMPLETED" : "PENDING"}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="playcard-enter-btn"
+                          onClick={() => {
+                            openChallenge(card.id);
+                          }}
+                        >
+                          [ ENTER ]
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="playcard-enter-btn"
-                        onClick={() => {
-                          openChallenge(card.id);
-                        }}
-                      >
-                        [ ENTER ]
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1040,6 +1284,27 @@ export default function ArenaPage() {
                 {showHint && (
                   <div className="section-content-box hint-box">
                     <p className="hint-text">{selectedCard.hint}</p>
+                    {selectedCard.hint?.includes("http") && (
+                      <div style={{ marginTop: "0.6rem" }}>
+                        <a
+                          href={selectedCard.hint.match(/https?:\/\/[^\s"'<>]+/)?.[0]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.4rem",
+                            color: "var(--neon-green, #00ff66)",
+                            fontFamily: "var(--font-mono, monospace)",
+                            fontSize: "0.85rem",
+                            textDecoration: "underline",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          [ ↗ OPEN INTEL DOSSIER / ATTACHMENT ]
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1070,10 +1335,13 @@ export default function ArenaPage() {
                     }`}
                     disabled={
                       completedChallenges.includes(selectedCard.id) ||
-                      !flagInput.trim()
+                      !flagInput.trim() ||
+                      isSubmittingFlag
                     }
                   >
-                    {completedChallenges.includes(selectedCard.id)
+                    {isSubmittingFlag
+                      ? "[ VERIFYING... ]"
+                      : completedChallenges.includes(selectedCard.id)
                       ? "[ ✓ COMPLETED ]"
                       : "[ SUBMIT FLAG ]"}
                   </button>

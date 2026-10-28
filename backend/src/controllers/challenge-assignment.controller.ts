@@ -4,14 +4,27 @@ import { teamChallengeAssignments } from '../db/schema/team-challenge-assignment
 import { challenges } from '../db/schema/challenges'
 import { teams } from '../db/schema/teams'
 import { assignChallengesToTeam } from '../services/challenge-assignment.service'
+import { getUnlockedLevel } from '../services/level-unlock.service'
 import type { AppContext } from '../types'
 
 export async function assignTeamChallenges(c: AppContext) {
   const teamId = Number(c.req.param('teamId'))
   const level = Number(c.req.param('level'))
+  const authUser = c.get('user')
 
   if (!Number.isSafeInteger(teamId) || teamId <= 0) {
     return c.json({ success: false, message: 'Invalid team ID' }, 400)
+  }
+
+  // Users can assign challenges for their own team; admins can assign for any team
+  if (authUser.role === 'user') {
+    const userTeamId = authUser.teamId ?? Number(authUser.id)
+    if (userTeamId !== teamId) {
+      return c.json(
+        { success: false, message: "You cannot assign challenges to another team" },
+        403,
+      )
+    }
   }
 
   const result = await assignChallengesToTeam(c, teamId, level)
@@ -68,7 +81,7 @@ export async function getTeamAssignedChallenges(c: AppContext) {
     conditions.push(eq(teamChallengeAssignments.level, level))
   }
 
-  const assigned = await db
+  let assigned = await db
     .select({
       id: challenges.id,
       title: challenges.title,
@@ -84,6 +97,50 @@ export async function getTeamAssignedChallenges(c: AppContext) {
       eq(teamChallengeAssignments.challengeId, challenges.id),
     )
     .where(and(...conditions))
+
+  // Auto-assign challenges for all unlocked levels that haven't been assigned yet
+  const unlockedLevel = (await getUnlockedLevel(c, teamId)) ?? 1
+  let newlyAssigned = false
+
+  const targetLevels =
+    levelParam !== undefined
+      ? [Number(levelParam)]
+      : Array.from({ length: unlockedLevel }, (_, i) => i + 1)
+
+  for (const lvl of targetLevels) {
+    if (lvl >= 1 && lvl <= unlockedLevel) {
+      const hasForLevel = assigned.some((a) => a.level === lvl)
+      if (!hasForLevel) {
+        try {
+          const assignRes = await assignChallengesToTeam(c, teamId, lvl)
+          if (assignRes.success) {
+            newlyAssigned = true
+          }
+        } catch {
+          // ignore auto-assign errors
+        }
+      }
+    }
+  }
+
+  if (newlyAssigned) {
+    assigned = await db
+      .select({
+        id: challenges.id,
+        title: challenges.title,
+        description: challenges.description,
+        hintUrl: challenges.hintUrl,
+        level: challenges.level,
+        difficulty: challenges.difficulty,
+        assignedAt: teamChallengeAssignments.assignedAt,
+      })
+      .from(teamChallengeAssignments)
+      .innerJoin(
+        challenges,
+        eq(teamChallengeAssignments.challengeId, challenges.id),
+      )
+      .where(and(...conditions))
+  }
 
   return c.json({
     success: true,
