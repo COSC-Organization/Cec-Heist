@@ -328,6 +328,14 @@ const ROAD_2_PATH =
 const ROAD_3_PATH =
   "M 1210 659 C 1211.8 659.0, 1216.7 658.8, 1221 659 C 1225.3 659.2, 1231.0 659.8, 1236 660 C 1241.0 660.2, 1246.0 660.5, 1251 660 C 1256.0 659.5, 1261.0 658.2, 1266 657 C 1271.0 655.8, 1276.0 654.5, 1281 653 C 1286.0 651.5, 1290.8 650.7, 1296 648 C 1301.2 645.3, 1307.0 643.2, 1312 637 C 1317.0 630.8, 1321.3 621.2, 1326 611 C 1330.7 600.8, 1335.2 586.0, 1340 576 C 1344.8 566.0, 1350.0 556.7, 1355 551 C 1360.0 545.3, 1367.5 543.5, 1370 542";
 
+// 4 Distinct Challenge Images distributed across the 4 objectives in each sector
+const SECTOR_CHALLENGE_IMAGES = [
+  "/arena/pic1.png",
+  "/arena/pic2.png",
+  "/arena/pic3.png",
+  "/arena/pic4.png",
+];
+
 // Map backend challenge assignment to PlayCard with sector / facility routing
 const mapAssignedToPlayCard = (
   c: AssignedChallenge,
@@ -340,17 +348,12 @@ const mapAssignedToPlayCard = (
     3: "command",
     4: "vault",
   };
-  const picByLevel: Record<number, string> = {
-    1: "/arena/pic1.png",
-    2: "/arena/pic2.png",
-    3: "/arena/pic3.png",
-    4: "/arena/pic4.png",
-  };
   const facility = facilityByLevel[c.level] || "factory";
   const diff = (c.difficulty || "easy").toLowerCase() as "easy" | "medium" | "high";
   const points =
     c.points ?? (diff === "easy" ? 10 : diff === "medium" ? 20 : 30);
   const isSolved = solvedChallengeIds.has(String(c.id));
+  const cardPic = SECTOR_CHALLENGE_IMAGES[idx % SECTOR_CHALLENGE_IMAGES.length];
 
   return {
     id: String(c.id),
@@ -366,7 +369,7 @@ const mapAssignedToPlayCard = (
     hintUrl: c.hintUrl || null,
     flag: "FLAG{...}",
     status: isSolved ? "COMPLETED" : "PENDING",
-    pic: picByLevel[c.level] || "/arena/pic1.png",
+    pic: cardPic,
     facilityId: facility,
   };
 };
@@ -387,6 +390,9 @@ export default function ArenaPage() {
   const [allCards, setAllCards] = useState<PlayCard[]>(PLAY_CARDS);
   const [isSubmittingFlag, setIsSubmittingFlag] = useState<boolean>(false);
   const [isLoadingLiveChallenges, setIsLoadingLiveChallenges] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [unlockedStages, setUnlockedStages] = useState<number>(1);
+  const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
 
   // Sync team's assigned challenges, solves, and level progression from live Backend API
   useEffect(() => {
@@ -461,9 +467,12 @@ export default function ArenaPage() {
           Array.isArray(assignedRes.data) &&
           assignedRes.data.length > 0
         ) {
-          const mapped = assignedRes.data.map((c, idx) =>
-            mapAssignedToPlayCard(c, idx, solvedIds)
-          );
+          const levelCounter: Record<number, number> = {};
+          const mapped = assignedRes.data.map((c) => {
+            const currentIdx = levelCounter[c.level] ?? 0;
+            levelCounter[c.level] = currentIdx + 1;
+            return mapAssignedToPlayCard(c, currentIdx, solvedIds);
+          });
           setAllCards(mapped);
           return;
         }
@@ -477,13 +486,16 @@ export default function ArenaPage() {
             Array.isArray(allChalsRes.data) &&
             allChalsRes.data.length > 0
           ) {
-            const mapped = allChalsRes.data.map((c, idx) =>
-              mapAssignedToPlayCard(
+            const levelCounter: Record<number, number> = {};
+            const mapped = allChalsRes.data.map((c) => {
+              const currentIdx = levelCounter[c.level] ?? 0;
+              levelCounter[c.level] = currentIdx + 1;
+              return mapAssignedToPlayCard(
                 c as unknown as AssignedChallenge,
-                idx,
+                currentIdx,
                 solvedIds
-              )
-            );
+              );
+            });
             setAllCards(mapped);
           }
         } catch {
@@ -545,15 +557,9 @@ export default function ArenaPage() {
       return () => window.removeEventListener("storage", loadCustomChallenges);
     }
   }, []);
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Factory Unlock Progression State (1 to 4)
-  const [unlockedStages, setUnlockedStages] = useState<number>(1);
-  const [justUnlockedStage, setJustUnlockedStage] = useState<number | null>(null);
 
   // Sync state from URL and localStorage on mount so refresh keeps current view
   useEffect(() => {
@@ -1166,15 +1172,32 @@ export default function ArenaPage() {
                 <div className="facility-quad-columns">
                   {currentFacilityCards.map((card, idx) => {
                     const isCardCompleted = completedChallenges.includes(card.id);
+                    const cardImg = card.pic || SECTOR_CHALLENGE_IMAGES[idx % SECTOR_CHALLENGE_IMAGES.length];
 
                     return (
-                      <div key={card.id} className={`facility-column-box box-${idx + 1}`}>
-                        <span className="box-corner-num">{card.number}</span>
-                        <div className="playcard-img-wrap">
+                      <div
+                        key={card.id}
+                        className={`facility-grid-card box-${idx + 1} ${
+                          isCardCompleted ? "card-completed" : ""
+                        }`}
+                        onClick={() => {
+                          openChallenge(card.id);
+                        }}
+                        onMouseEnter={playCyberHover}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            openChallenge(card.id);
+                          }
+                        }}
+                        title={`Access Objective: ${card.title}`}
+                      >
+                        <div className="grid-card-img-wrap">
                           <img
-                            src={card.pic}
-                            alt={`Card ${card.number}`}
-                            className="playcard-img"
+                            src={cardImg}
+                            alt={card.title}
+                            className="grid-card-img"
                             onError={(e) => {
                               (e.target as HTMLElement).style.opacity = "0";
                             }}
@@ -1182,42 +1205,15 @@ export default function ArenaPage() {
                               (e.target as HTMLElement).style.opacity = "1";
                             }}
                           />
+                          {isCardCompleted && (
+                            <div className="grid-card-completed-badge font-pixel">
+                              ✓ COMPLETED
+                            </div>
+                          )}
                         </div>
-                        <div className="playcard-body">
-                          <div className="playcard-meta-bar">
-                            <span
-                              className={`playcard-difficulty-tag diff-${card.difficulty || "easy"}`}
-                            >
-                              {(card.difficulty || "easy").toUpperCase()}
-                            </span>
-                            <span className="playcard-points-tag">
-                              {card.points} PTS
-                            </span>
-                          </div>
-                          <h4 className="playcard-title">{card.title}</h4>
-                          <p className="playcard-desc">{card.desc}</p>
-                          <div className="playcard-status-row">
-                            <span className="status-label">STATUS</span>
-                            <span
-                              className={`playcard-status-badge ${
-                                isCardCompleted
-                                  ? "status-completed"
-                                  : "status-pending"
-                              }`}
-                            >
-                              ● {isCardCompleted ? "COMPLETED" : "PENDING"}
-                            </span>
-                          </div>
+                        <div className="grid-card-title-bar">
+                          <h4 className="grid-card-title font-pixel">{card.title}</h4>
                         </div>
-                        <button
-                          type="button"
-                          className="playcard-enter-btn"
-                          onClick={() => {
-                            openChallenge(card.id);
-                          }}
-                        >
-                          [ ENTER ]
-                        </button>
                       </div>
                     );
                   })}
