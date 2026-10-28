@@ -246,6 +246,7 @@ export interface PlayCard {
   difficulty: "easy" | "medium" | "high";
   problemDescription: string;
   hint: string;
+  hintUrl?: string | null;
   flag: string;
   status: "COMPLETED" | "PENDING";
   pic: string;
@@ -360,8 +361,9 @@ const mapAssignedToPlayCard = (
     difficulty: diff,
     problemDescription: c.description,
     hint: c.hintUrl
-      ? `Intelligence dossier accessible at: ${c.hintUrl}`
+      ? c.hintUrl
       : "Inspect transmission logs, analyze protocol headers, and extract the root key.",
+    hintUrl: c.hintUrl || null,
     flag: "FLAG{...}",
     status: isSolved ? "COMPLETED" : "PENDING",
     pic: picByLevel[c.level] || "/arena/pic1.png",
@@ -525,6 +527,7 @@ export default function ArenaPage() {
                   difficulty: c.difficulty || "easy",
                   problemDescription: c.description,
                   hint: c.hint || "Analyze system communications and reverse cipher nonces to extract the root key.",
+                  hintUrl: c.hintUrl || null,
                   flag: c.flag || "FLAG{cecheist_override}",
                   status: "PENDING",
                   pic: c.pic || (c.facilityId === "factory" ? "/arena/pic1.png" : c.facilityId === "logistics" ? "/arena/pic2.png" : c.facilityId === "command" ? "/arena/pic3.png" : "/arena/pic4.png"),
@@ -1291,48 +1294,89 @@ export default function ArenaPage() {
                 </div>
               </div>
 
-              {/* Tactical Hint (Expandable) */}
-              <div className="challenge-card-section">
-                <div className="section-title-bar">
-                  <span>// TACTICAL HINT</span>
-                  <button
-                    type="button"
-                    className="hint-toggle-btn"
-                    onClick={() => {
-                      playCyberClick();
-                      setShowHint(!showHint);
-                    }}
-                  >
-                    {showHint ? "[ HIDE HINT ]" : "[ 💡 VIEW HINT ]"}
-                  </button>
-                </div>
-                {showHint && (
-                  <div className="section-content-box hint-box">
-                    <p className="hint-text">{selectedCard.hint}</p>
-                    {selectedCard.hint?.includes("http") && (
-                      <div style={{ marginTop: "0.6rem" }}>
+              {/* Mission Clue & Target Resource */}
+              {(() => {
+                const targetUrl =
+                  selectedCard.hintUrl ||
+                  (selectedCard.hint?.match(/https?:\/\/[^\s"'<>]+/)?.[0] ?? null);
+                const clueGuidance = selectedCard.hint
+                  ? selectedCard.hint
+                      .replace(/Intelligence dossier accessible at:\s*https?:\/\/[^\s"'<>]+/i, "")
+                      .replace(/https?:\/\/[^\s"'<>]+/g, "")
+                      .trim()
+                  : "";
+
+                return (
+                  <div className="challenge-card-section">
+                    <div className="section-title-bar">
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className="section-dot amber" />
+                        <span>// MISSION CLUE &amp; TARGET</span>
+                      </div>
+                      {targetUrl ? (
                         <a
-                          href={selectedCard.hint.match(/https?:\/\/[^\s"'<>]+/)?.[0]}
+                          href={targetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.4rem",
-                            color: "var(--neon-green, #00ff66)",
-                            fontFamily: "var(--font-mono, monospace)",
-                            fontSize: "0.85rem",
-                            textDecoration: "underline",
-                            wordBreak: "break-all",
+                          className="clue-action-btn font-pixel"
+                          onClick={playCyberClick}
+                          title="Open Mission Clue / Target directly in a new tab"
+                        >
+                          <span>[ ⚡ ACCESS CLUE ↗ ]</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          className="clue-action-btn font-pixel"
+                          onClick={() => {
+                            playCyberClick();
+                            setShowHint(!showHint);
                           }}
                         >
-                          [ ↗ OPEN INTEL DOSSIER / ATTACHMENT ]
+                          {showHint ? "[ HIDE CLUE ]" : "[ 🔍 VIEW CLUE ]"}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="section-content-box clue-box">
+                      {targetUrl && (
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="clue-launch-banner"
+                          onClick={playCyberClick}
+                        >
+                          <div className="clue-launch-left">
+                            <span className="clue-launch-icon">⚡</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="clue-launch-title font-pixel">
+                                OPEN CLUE // TARGET LINK
+                              </div>
+                              <div className="clue-launch-subtitle font-mono">
+                                {targetUrl}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="clue-launch-badge font-pixel">
+                            [ OPEN ↗ ]
+                          </span>
                         </a>
-                      </div>
-                    )}
+                      )}
+
+                      {clueGuidance ? (
+                        <p className="hint-text font-mono" style={{ margin: 0 }}>
+                          {clueGuidance}
+                        </p>
+                      ) : !targetUrl ? (
+                        <p className="hint-text font-mono" style={{ margin: 0 }}>
+                          No external link attached for this sector objective.
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Flag Input & Submission */}
               <div className="challenge-card-section">
