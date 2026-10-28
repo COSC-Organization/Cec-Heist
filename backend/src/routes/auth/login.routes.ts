@@ -56,77 +56,15 @@ loginRoutes.post('/', async (c) => {
     const db = createDb(c.env.cec_heist_db)
     const normalizedIdentifier = identifier.toLowerCase()
 
-    // 1. Check if the identifier belongs to an Admin in `users`
-    let adminUser = await db.query.users.findFirst({
-      where: eq(sql`lower(${users.email})`, normalizedIdentifier),
-    })
-
-    if (!adminUser && !normalizedIdentifier.includes('@')) {
-      adminUser = await db.query.users.findFirst({
-        where: eq(
-          sql`lower(${users.email})`,
-          `${normalizedIdentifier}@cecheist.internal`
-        ),
-      })
-    }
-
-    if (adminUser) {
-      let isMatch = await compare(password, adminUser.passwordHash)
-      if (!isMatch && password !== password.toLowerCase()) {
-        isMatch = await compare(password.toLowerCase(), adminUser.passwordHash)
-      }
-      if (isMatch) {
-        const now = Math.floor(Date.now() / 1000)
-
-        const accessToken = await sign(
-          {
-            sub: String(adminUser.id),
-            email: adminUser.email,
-            role: adminUser.role,
-            tokenType: 'access',
-            iat: now,
-            exp: now + 60 * 60,
-          },
-          jwtSecret,
-          'HS256'
-        )
-
-        const refreshToken = await sign(
-          {
-            sub: String(adminUser.id),
-            email: adminUser.email,
-            role: adminUser.role,
-            tokenType: 'refresh',
-            iat: now,
-            exp: now + 24 * 60 * 60,
-          },
-          jwtSecret,
-          'HS256'
-        )
-
-        return c.json({
-          success: true,
-          message: 'Login successful',
-          accessToken,
-          refreshToken,
-          expiresIn: 3600,
-          refreshExpiresIn: 86400,
-          user: {
-            id: adminUser.id,
-            email: adminUser.email,
-            role: adminUser.role,
-          },
-        })
-      }
-    }
-
-    // 2. Check if identifier belongs to a Team in `teams`
-    // 2a. Match exact team_name (case-insensitive)
+    // =========================================================================
+    // PRIORITY 1: Check if identifier belongs to a Team in `teams` table
+    // (Contestants & Squads are the primary users of the system)
+    // =========================================================================
     let team = await db.query.teams.findFirst({
       where: eq(sql`lower(${teams.teamName})`, normalizedIdentifier),
     })
 
-    // 2b. Match by normalized spaces / underscores / hyphens
+    // 1b. Match by stripped spaces / underscores / hyphens
     if (!team) {
       const stripped = normalizedIdentifier.replace(/[\s_-]/g, '')
       if (stripped.length > 0) {
@@ -139,9 +77,9 @@ loginRoutes.post('/', async (c) => {
       }
     }
 
-    // 2c. Match by numeric team ID (e.g. "61", "TM-61", "TM-061")
+    // 1c. Match by numeric team ID (e.g. "61", "TM-61", "TM-061", "TM 61")
     if (!team) {
-      const numMatch = identifier.match(/^(?:TM-?)?(\d+)$/i)
+      const numMatch = identifier.match(/^(?:TM[\s_-]*)?(\d+)$/i)
       if (numMatch) {
         const teamIdNum = parseInt(numMatch[1], 10)
         if (teamIdNum > 0) {
@@ -152,7 +90,7 @@ loginRoutes.post('/', async (c) => {
       }
     }
 
-    // 2d. Match by team email format (e.g. "kauhsik@team.internal" or "kauhsik@cec.heist")
+    // 1d. Match by team email format (e.g. "kauhsik@team.internal" or "kauhsik@cec.heist")
     if (!team && normalizedIdentifier.includes('@')) {
       const emailPrefix = normalizedIdentifier.split('@')[0].replace(/[\s_-]/g, '')
       if (emailPrefix.length > 0) {
@@ -166,14 +104,19 @@ loginRoutes.post('/', async (c) => {
     }
 
     if (team && team.passwordHash) {
-      let isMatch = await compare(password, team.passwordHash)
-
-      // Fallback for auto-capitalization (e.g. mobile keyboards or caps lock)
-      if (!isMatch && password !== password.toLowerCase()) {
-        isMatch = await compare(password.toLowerCase(), team.passwordHash)
-      }
-      if (!isMatch && password !== password.toUpperCase()) {
-        isMatch = await compare(password.toUpperCase(), team.passwordHash)
+      let isMatch = false
+      try {
+        isMatch = await compare(password, team.passwordHash)
+        // Fallback for auto-capitalization (e.g. mobile keyboards or caps lock)
+        if (!isMatch && password !== password.toLowerCase()) {
+          isMatch = await compare(password.toLowerCase(), team.passwordHash)
+        }
+        if (!isMatch && password !== password.toUpperCase()) {
+          isMatch = await compare(password.toUpperCase(), team.passwordHash)
+        }
+      } catch (err) {
+        console.warn('Password comparison error for team:', team.id, err)
+        isMatch = false
       }
 
       if (isMatch) {
@@ -224,6 +167,83 @@ loginRoutes.post('/', async (c) => {
             score: team.score,
             email: teamEmail,
             role: 'user',
+          },
+        })
+      }
+    }
+
+    // =========================================================================
+    // PRIORITY 2: Check if identifier belongs to an Admin in `users` table
+    // (Only accessed if no team was found or matched)
+    // =========================================================================
+    let adminUser = await db.query.users.findFirst({
+      where: eq(sql`lower(${users.email})`, normalizedIdentifier),
+    })
+
+    if (!adminUser && !normalizedIdentifier.includes('@')) {
+      adminUser = await db.query.users.findFirst({
+        where: eq(
+          sql`lower(${users.email})`,
+          `${normalizedIdentifier}@cecheist.internal`
+        ),
+      })
+    }
+
+    if (adminUser && adminUser.passwordHash) {
+      let isMatch = false
+      try {
+        isMatch = await compare(password, adminUser.passwordHash)
+        if (!isMatch && password !== password.toLowerCase()) {
+          isMatch = await compare(password.toLowerCase(), adminUser.passwordHash)
+        }
+        if (!isMatch && password !== password.toUpperCase()) {
+          isMatch = await compare(password.toUpperCase(), adminUser.passwordHash)
+        }
+      } catch (err) {
+        console.warn('Password comparison error for admin:', adminUser.id, err)
+        isMatch = false
+      }
+
+      if (isMatch) {
+        const now = Math.floor(Date.now() / 1000)
+
+        const accessToken = await sign(
+          {
+            sub: String(adminUser.id),
+            email: adminUser.email,
+            role: adminUser.role,
+            tokenType: 'access',
+            iat: now,
+            exp: now + 60 * 60,
+          },
+          jwtSecret,
+          'HS256'
+        )
+
+        const refreshToken = await sign(
+          {
+            sub: String(adminUser.id),
+            email: adminUser.email,
+            role: adminUser.role,
+            tokenType: 'refresh',
+            iat: now,
+            exp: now + 24 * 60 * 60,
+          },
+          jwtSecret,
+          'HS256'
+        )
+
+        return c.json({
+          success: true,
+          message: 'Login successful',
+          accessToken,
+          refreshToken,
+          expiresIn: 3600,
+          refreshExpiresIn: 86400,
+          user: {
+            id: adminUser.id,
+            email: adminUser.email,
+            role: adminUser.role,
           },
         })
       }
