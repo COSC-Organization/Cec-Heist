@@ -4338,111 +4338,68 @@ button img,
   box-shadow: 0 0 8px rgba(255, 170, 0, 0.3);
 }
 
-/* Clue Direct Action Button & Banner */
-.clue-action-btn {
-  margin-left: auto;
+/* Dark Green Open Clue Button */
+.open-clue-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.open-clue-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(255, 170, 0, 0.24) 0%, rgba(255, 120, 0, 0.18) 100%);
-  border: 1.5px solid #ffaa00;
-  color: #ffaa00;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 1.5px solid #059669;
+  color: #a7f3d0;
   font-family: var(--font-minecraft), monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 8px 18px;
+  border-radius: 5px;
   cursor: pointer;
   letter-spacing: 0.08em;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 0 12px rgba(255, 170, 0, 0.25);
-  text-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+  box-shadow: 0 4px 14px rgba(6, 78, 59, 0.45), inset 0 1px 1px rgba(110, 231, 183, 0.25);
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 
-.clue-action-btn:hover {
-  background: linear-gradient(135deg, rgba(255, 170, 0, 0.45) 0%, rgba(255, 120, 0, 0.32) 100%);
+.open-clue-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+  border-color: #10b981;
   color: #ffffff;
-  border-color: #ffd000;
-  box-shadow: 0 0 20px rgba(255, 170, 0, 0.55), inset 0 0 10px rgba(255, 208, 0, 0.35);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5), inset 0 0 8px rgba(52, 211, 153, 0.3);
   transform: translateY(-1px) scale(1.02);
 }
 
-.section-content-box.clue-box {
-  background: rgba(255, 170, 0, 0.05);
-  border: 1px solid rgba(255, 170, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.open-clue-arrow {
+  font-size: 14px;
+  transition: transform 0.2s ease;
 }
 
-.clue-launch-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1.15rem;
-  background: linear-gradient(90deg, rgba(255, 170, 0, 0.14) 0%, rgba(14, 18, 28, 0.9) 100%);
-  border: 1px solid rgba(255, 170, 0, 0.45);
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.open-clue-btn:hover .open-clue-arrow {
+  transform: translate(2px, -2px);
 }
 
-.clue-launch-banner:hover {
-  background: linear-gradient(90deg, rgba(255, 170, 0, 0.25) 0%, rgba(22, 28, 42, 0.95) 100%);
-  border-color: #ffaa00;
-  box-shadow: 0 0 18px rgba(255, 170, 0, 0.32);
-  transform: translateX(3px);
-}
-
-.clue-launch-left {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-width: 0;
-}
-
-.clue-launch-icon {
-  font-size: 1.45rem;
-  color: #ffaa00;
-  text-shadow: 0 0 10px rgba(255, 170, 0, 0.7);
-  flex-shrink: 0;
-}
-
-.clue-launch-title {
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  color: #ffaa00;
-  font-weight: 700;
-}
-
-.clue-launch-subtitle {
-  font-size: 0.76rem;
-  color: #a1a1aa;
+.open-clue-url {
+  font-size: 0.78rem;
+  color: #6ee7b7;
+  opacity: 0.75;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 440px;
+  max-width: 460px;
 }
 
-.clue-launch-badge {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  padding: 0.35rem 0.75rem;
-  background: rgba(255, 170, 0, 0.22);
-  border: 1px solid #ffaa00;
-  color: #ffcb6b;
-  border-radius: 4px;
-  letter-spacing: 0.06em;
-  transition: all 0.2s ease;
-}
-
-.clue-launch-banner:hover .clue-launch-badge {
-  background: #ffaa00;
-  color: #000000;
-  font-weight: 700;
-  box-shadow: 0 0 10px rgba(255, 170, 0, 0.6);
+.section-content-box.clue-box {
+  background: rgba(6, 78, 59, 0.08);
+  border: 1px solid rgba(5, 150, 105, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .section-content-box.hint-box {
@@ -4624,20 +4581,21 @@ button img,
     font-size: 11.5px;
   }
 
-  .clue-action-btn {
-    font-size: 11px;
-    padding: 4px 10px;
-  }
-
-  .clue-launch-banner {
+  .open-clue-container {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.65rem;
-    padding: 0.75rem 0.9rem;
+    align-items: stretch;
+    gap: 8px;
   }
 
-  .clue-launch-subtitle {
-    max-width: 250px;
+  .open-clue-btn {
+    width: 100%;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    justify-content: center;
+  }
+
+  .open-clue-url {
+    max-width: 100%;
   }
 
   .challenge-flag-form {

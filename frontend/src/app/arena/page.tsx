@@ -1310,67 +1310,38 @@ export default function ArenaPage() {
                   <div className="challenge-card-section">
                     <div className="section-title-bar">
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span className="section-dot amber" />
-                        <span>// MISSION CLUE &amp; TARGET</span>
+                        <span className="section-dot" style={{ background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                        <span>// MISSION CLUE</span>
                       </div>
-                      {targetUrl ? (
-                        <a
-                          href={targetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="clue-action-btn font-pixel"
-                          onClick={playCyberClick}
-                          title="Open Mission Clue / Target directly in a new tab"
-                        >
-                          <span>[ ⚡ ACCESS CLUE ↗ ]</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          className="clue-action-btn font-pixel"
-                          onClick={() => {
-                            playCyberClick();
-                            setShowHint(!showHint);
-                          }}
-                        >
-                          {showHint ? "[ HIDE CLUE ]" : "[ 🔍 VIEW CLUE ]"}
-                        </button>
-                      )}
                     </div>
 
                     <div className="section-content-box clue-box">
                       {targetUrl && (
-                        <a
-                          href={targetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="clue-launch-banner"
-                          onClick={playCyberClick}
-                        >
-                          <div className="clue-launch-left">
-                            <span className="clue-launch-icon">⚡</span>
-                            <div style={{ minWidth: 0 }}>
-                              <div className="clue-launch-title font-pixel">
-                                OPEN CLUE // TARGET LINK
-                              </div>
-                              <div className="clue-launch-subtitle font-mono">
-                                {targetUrl}
-                              </div>
-                            </div>
-                          </div>
-                          <span className="clue-launch-badge font-pixel">
-                            [ OPEN ↗ ]
+                        <div className="open-clue-container">
+                          <a
+                            href={targetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="open-clue-btn font-pixel"
+                            onClick={playCyberClick}
+                            title="Open Clue link directly in a new tab"
+                          >
+                            <span>OPEN CLUE</span>
+                            <span className="open-clue-arrow">↗</span>
+                          </a>
+                          <span className="open-clue-url font-mono" title={targetUrl}>
+                            {targetUrl}
                           </span>
-                        </a>
+                        </div>
                       )}
 
                       {clueGuidance ? (
-                        <p className="hint-text font-mono" style={{ margin: 0 }}>
+                        <p className="hint-text font-mono" style={{ margin: 0, color: "#a7f3d0" }}>
                           {clueGuidance}
                         </p>
                       ) : !targetUrl ? (
                         <p className="hint-text font-mono" style={{ margin: 0 }}>
-                          No external link attached for this sector objective.
+                          No external clue link attached for this sector objective.
                         </p>
                       ) : null}
                     </div>
