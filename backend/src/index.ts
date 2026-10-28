@@ -42,13 +42,13 @@ const isAllowedOrigin = (origin: string, envOrigin?: string): boolean => {
     return true
   }
 
-  // 3. Local development origins
-  if (
-    cleanOrigin === 'http://localhost:3000' ||
-    cleanOrigin === 'http://127.0.0.1:3000' ||
-    cleanOrigin === 'http://localhost:8787' ||
-    cleanOrigin === 'http://localhost:8788'
-  ) {
+  // Allow Vercel preview and production deployments
+  if (/^https:\/\/([a-z0-9-]+\.)*vercel\.app$/.test(cleanOrigin)) {
+    return true
+  }
+
+  // 3. Local development origins (any port on localhost or 127.0.0.1)
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(cleanOrigin)) {
     return true
   }
 

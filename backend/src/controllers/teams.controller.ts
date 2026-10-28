@@ -104,7 +104,9 @@ export async function createTeam(c: AppContext) {
       )
     }
 
-    const passwordHash = await hash(password, 10)
+    const passwordHash = password.includes('||')
+      ? (await Promise.all(password.split('||').map((p: string) => hash(p.trim(), 10)))).join('||')
+      : await hash(password, 10)
 
     const [team] = await db
       .insert(teams)
@@ -204,7 +206,9 @@ export async function createTeamsBulk(c: AppContext) {
         continue
       }
 
-      const passwordHash = await hash(password, 10)
+      const passwordHash = password.includes('||')
+      ? (await Promise.all(password.split('||').map((p: string) => hash(p.trim(), 10)))).join('||')
+      : await hash(password, 10)
       const [newTeam] = await db
         .insert(teams)
         .values({
@@ -481,7 +485,9 @@ export async function uploadTeamsCSV(c: AppContext) {
         continue
       }
 
-      const passwordHash = await hash(password, 10)
+      const passwordHash = password.includes('||')
+      ? (await Promise.all(password.split('||').map((p: string) => hash(p.trim(), 10)))).join('||')
+      : await hash(password, 10)
       const [newTeam] = await db
         .insert(teams)
         .values({

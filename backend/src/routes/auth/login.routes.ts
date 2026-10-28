@@ -32,13 +32,17 @@ async function verifyPasswordWithTolerance(
     ])
   )
 
+  const hashes = storedHash.split('||')
+
   for (const cand of candidates) {
-    try {
-      if (await compare(cand, storedHash)) {
-        return true
+    for (const h of hashes) {
+      try {
+        if (await compare(cand, h.trim())) {
+          return true
+        }
+      } catch {
+        // Continue to next candidate
       }
-    } catch {
-      // Continue to next candidate
     }
   }
 
