@@ -122,7 +122,17 @@ export async function createTeam(c: AppContext) {
     )
   } catch (error) {
     console.error('Create team failed:', error)
-    return c.json({ success: false, message: 'Unable to create team' }, 500)
+    const errStr = String(error)
+    if (errStr.includes('UNIQUE constraint failed') || errStr.includes('teams_team_name_unique')) {
+      return c.json({ success: false, message: 'A team with this name already exists' }, 409)
+    }
+    return c.json(
+      {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unable to create team',
+      },
+      500
+    )
   }
 }
 
