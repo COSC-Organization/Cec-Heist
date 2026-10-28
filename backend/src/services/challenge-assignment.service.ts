@@ -107,14 +107,42 @@ if (level > unlockedLevel) {
       candidates.filter((challenge) => !assignedIds.has(challenge.id)),
     )
 
-    if (available.length < requiredCount) {
-      return {
-        success: false as const,
-        message: `Not enough ${difficulty} challenges available for level ${level}. Required: ${requiredCount}, available: ${available.length}`,
-      }
+    if (available.length > 0) {
+      selected.push(...available.slice(0, requiredCount))
     }
+  }
 
-    selected.push(...available.slice(0, requiredCount))
+  // If strict difficulty quotas couldn't find 4 challenges,
+  // backfill with any remaining unassigned challenges for this level
+  if (selected.length < 4) {
+    const allLevelCandidates = await db
+      .select()
+      .from(challenges)
+      .where(eq(challenges.level, level))
+
+    const previouslyAssigned = await db
+      .select({ challengeId: teamChallengeAssignments.challengeId })
+      .from(teamChallengeAssignments)
+      .where(eq(teamChallengeAssignments.teamId, teamId))
+
+    const assignedIds = new Set([
+      ...previouslyAssigned.map((item) => item.challengeId),
+      ...selected.map((item) => item.id),
+    ])
+
+    const remainingAvailable = shuffle(
+      allLevelCandidates.filter((challenge) => !assignedIds.has(challenge.id)),
+    )
+
+    const needed = 4 - selected.length
+    selected.push(...remainingAvailable.slice(0, needed))
+  }
+
+  if (selected.length === 0) {
+    return {
+      success: false as const,
+      message: `No challenges currently available for level ${level}`,
+    }
   }
 
   await db.insert(teamChallengeAssignments).values(

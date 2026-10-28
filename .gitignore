@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# CTF Seeds and sensitive flag files
+seed_challenges*.sql
+*flags*.sql
+seed_challenges.sql
+

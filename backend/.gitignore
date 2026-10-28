@@ -31,3 +31,9 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# CTF Seeds and sensitive flag files
+seed_challenges*.sql
+*flags*.sql
+seed_challenges.sql
+
