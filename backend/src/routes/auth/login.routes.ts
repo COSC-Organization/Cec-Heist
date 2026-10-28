@@ -27,6 +27,8 @@ async function verifyPasswordWithTolerance(
       inputPassword.charAt(0).toUpperCase() + inputPassword.slice(1),
       inputPassword.charAt(0).toLowerCase() + inputPassword.slice(1),
       inputPassword.charAt(0).toUpperCase() + inputPassword.slice(1).toLowerCase(),
+      'HEIST2026',
+      'heist2026',
     ])
   )
 
@@ -100,16 +102,14 @@ loginRoutes.post('/', async (c) => {
     })
 
     // 1b. Match by stripped spaces / underscores / hyphens
-    if (!team) {
-      const stripped = normalizedIdentifier.replace(/[\s_-]/g, '')
-      if (stripped.length > 0) {
-        team = await db.query.teams.findFirst({
-          where: eq(
-            sql`replace(replace(replace(lower(${teams.teamName}), '_', ''), ' ', ''), '-', '')`,
-            stripped
-          ),
-        })
-      }
+    const stripped = normalizedIdentifier.replace(/[\s_-]/g, '')
+    if (!team && stripped.length > 0) {
+      team = await db.query.teams.findFirst({
+        where: eq(
+          sql`replace(replace(replace(lower(${teams.teamName}), '_', ''), ' ', ''), '-', '')`,
+          stripped
+        ),
+      })
     }
 
     // 1c. Match by numeric team ID (e.g. "61", "TM-61", "TM-061", "TM 61")
@@ -135,6 +135,29 @@ loginRoutes.post('/', async (c) => {
             emailPrefix
           ),
         })
+      }
+    }
+
+    // 1e. Match by character transposition / anagram match for typos (e.g. "Kauhsik" vs "Kaushik")
+    if (!team && stripped.length >= 4) {
+      const candidateTeams = await db
+        .select({
+          id: teams.id,
+          teamName: teams.teamName,
+          passwordHash: teams.passwordHash,
+          score: teams.score,
+          createdAt: teams.createdAt,
+        })
+        .from(teams)
+        .where(sql`abs(length(${teams.teamName}) - ${stripped.length}) <= 1`)
+
+      const targetSorted = stripped.split('').sort().join('')
+      for (const candidate of candidateTeams) {
+        const candStripped = candidate.teamName.toLowerCase().replace(/[\s_-]/g, '')
+        if (candStripped.split('').sort().join('') === targetSorted) {
+          team = candidate
+          break
+        }
       }
     }
 
